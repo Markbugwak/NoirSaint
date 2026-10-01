@@ -1,0 +1,728 @@
+/* ============================================================
+   NOIRSAINT — Motion System  v2
+   Refactored: smoother easing, 3-D logo parallax, loader sweep,
+   staggered reveals, micro-interactions, nav transitions.
+   All effects respect prefers-reduced-motion.
+   ============================================================ */
+
+/* ── Base easing tokens ─────────────────────────────────────── */
+:root {
+  --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:    cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring:    cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-snappy:    cubic-bezier(0.4,  0,   0.2,  1);
+}
+
+/* ── Page transition ──────────────────────────────────────────
+   Enters: fade-up from 22 px, opacity 0→1.
+   Uses will-change: opacity, transform for GPU compositing.
+──────────────────────────────────────────────────────────────── */
+.page-transition {
+  opacity: 1;
+  transform: none;
+}
+.page-transition.page-visible {
+  animation: pageIn 0.62s var(--ease-out-expo) both;
+  will-change: opacity, transform;
+}
+@keyframes logoClickRotate {
+  from { transform: rotateY(0deg); }
+  to { transform: rotateY(360deg); }
+}
+.logo-rotating .logo-mark {
+  animation: logoClickRotate 0.72s var(--ease-out-expo) both;
+  transform-style: preserve-3d;
+  perspective: 500px;
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translate3d(0, 22px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* ── Account gate ────────────────────────────────────────────── */
+.account-gate {
+  min-height: calc(100vh - 76px);
+  padding: 150px 8vw 110px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+  align-items: center;
+  gap: 7vw;
+  overflow: hidden;
+  position: relative;
+  background:
+    radial-gradient(circle at 78% 48%, rgba(255, 255, 255, 0.07), transparent 30%),
+    linear-gradient(115deg, #050505 0%, #070707 62%, #101010 100%);
+}
+.account-gate-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 760px;
+}
+.account-gate h1 {
+  font-size: clamp(58px, 9vw, 140px);
+  line-height: 0.82;
+  letter-spacing: -0.065em;
+  font-weight: 400;
+  margin: 0;
+}
+.account-gate h1 em {
+  font-family: var(--serif);
+  font-weight: 400;
+}
+.account-gate-lead {
+  color: #8d8d8d;
+  font-size: 13px;
+  line-height: 1.8;
+  max-width: 390px;
+  margin: 38px 0 32px;
+}
+.account-gate-actions {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #9a9a9a;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  transition: color 0.25s ease, gap 0.25s var(--ease-out-expo);
+}
+.text-link:hover {
+  color: #eee;
+  gap: 13px;
+}
+.account-gate-mark {
+  position: relative;
+  width: min(34vw, 420px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  perspective: 900px;
+  animation: accountMarkIn 1.2s var(--ease-out-expo) 0.2s both;
+}
+.account-gate-mark img {
+  width: 48%;
+  filter: grayscale(1) contrast(1.2) brightness(1.3) drop-shadow(0 20px 30px rgba(0, 0, 0, 0.8));
+  animation: accountMarkFloat 5s ease-in-out infinite;
+}
+.account-gate-mark.is-rotating img {
+  animation: accountMarkClick 0.82s var(--ease-out-expo) both;
+}
+.account-gate-mark:focus-visible {
+  outline: 1px solid #555;
+  outline-offset: 8px;
+}
+.account-gate-orbit {
+  position: absolute;
+  inset: 8%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+}
+.account-gate-orbit-one {
+  transform: rotateX(67deg) rotateZ(-22deg);
+  animation: accountOrbit 14s linear infinite;
+}
+.account-gate-orbit-two {
+  inset: 20%;
+  border-color: rgba(255, 255, 255, 0.07);
+  transform: rotateY(68deg) rotateZ(18deg);
+  animation: accountOrbitReverse 10s linear infinite;
+}
+.account-gate-index {
+  position: absolute;
+  right: 0;
+  bottom: 8%;
+  color: #555;
+  font-size: 8px;
+  letter-spacing: 0.2em;
+}
+@keyframes accountMarkIn {
+  from { opacity: 0; transform: translate3d(30px, 0, 0) scale(0.92); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes accountMarkFloat {
+  0%, 100% { transform: translateY(0) rotateZ(0deg); }
+  50% { transform: translateY(-9px) rotateZ(2deg); }
+}
+@keyframes accountMarkClick {
+  from { transform: rotateY(0deg) translateY(0); }
+  to { transform: rotateY(360deg) translateY(0); }
+}
+@keyframes accountOrbit {
+  to { transform: rotateX(67deg) rotateZ(338deg); }
+}
+@keyframes accountOrbitReverse {
+  to { transform: rotateY(68deg) rotateZ(-342deg); }
+}
+
+/* ── Scroll-reveal ────────────────────────────────────────────
+   Stagger is applied via JS (--reveal-delay custom property).
+──────────────────────────────────────────────────────────────── */
+[data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 38px, 0);
+  transition:
+    opacity  0.85s var(--ease-out-expo) var(--reveal-delay, 0ms),
+    transform 0.95s var(--ease-out-expo) var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* ── Hero copy stagger ────────────────────────────────────────
+   Each child staggers in with heroIn; timing via animation-delay.
+──────────────────────────────────────────────────────────────── */
+@keyframes heroIn {
+  from { opacity: 0; transform: translate3d(0, 24px, 0); }
+  to   { opacity: 1; transform: translate3d(0,  0,  0); }
+}
+
+.hero-copy > * {
+  opacity: 0;
+  animation: heroIn 0.9s var(--ease-out-expo) forwards;
+}
+.hero-copy .eyebrow   { animation-delay: 0.18s; }
+.hero-copy h1         { animation-delay: 0.30s; }
+.hero-copy .lead      { animation-delay: 0.44s; }
+.hero-copy .actions   { animation-delay: 0.58s; }
+
+/* ── 3-D Logo stage + parallax ───────────────────────────────
+   The stage is a pointer-event zone on the right of the hero.
+   JS drives --mx / --my via pointermove for parallax rotation.
+──────────────────────────────────────────────────────────────── */
+.hero-logo-stage {
+  position: absolute;
+  right: 4%;
+  top: 50%;
+  width: min(46vw, 600px);
+  aspect-ratio: 1;
+  transform: translateY(-50%);
+  perspective: 900px;
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  z-index: 1;
+  /* gentle entrance */
+  animation: stageIn 1.4s var(--ease-out-expo) 0.2s both;
+}
+@keyframes stageIn {
+  from { opacity: 0; transform: translateY(calc(-50% + 40px)); }
+  to   { opacity: 1; transform: translateY(-50%); }
+}
+
+.hero-logo-depth {
+  position: relative;
+  width: 76%;
+  height: 76%;
+  display: grid;
+  place-items: center;
+  transform:
+    rotateX(var(--my, 0deg))
+    rotateY(var(--mx, 0deg))
+    translateZ(0);
+  transform-style: preserve-3d;
+  transition: transform 0.20s ease-out;
+  filter:
+    drop-shadow(0 32px 56px rgba(0, 0, 0, 0.72))
+    drop-shadow(0  0   32px rgba(200, 200, 200, 0.10));
+}
+
+.hero-logo-plate {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.hero-logo-plate img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: grayscale(1) contrast(1.18) brightness(1.10);
+}
+.hero-logo-plate-back {
+  transform: translate3d(-8px, 10px, -18px);
+  opacity: 0.34;
+  filter: blur(1px);
+}
+.hero-logo-plate-front {
+  transform: translateZ(18px);
+}
+
+/* Rear depth plane — subtle glow */
+.hero-logo-depth::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translateZ(-22px);
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 255, 255, 0.16),
+    transparent 48%
+  );
+  filter: blur(10px);
+}
+
+/* Front sheen sweep */
+.hero-logo-depth::after {
+  content: "";
+  position: absolute;
+  inset: 6%;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translateZ(10px);
+  background: linear-gradient(
+    118deg,
+    transparent 24%,
+    rgba(255, 255, 255, 0.22) 42%,
+    transparent 58%
+  );
+  mix-blend-mode: screen;
+  animation: logoSheen 5.2s var(--ease-in-out) infinite;
+}
+@keyframes logoSheen {
+  0%, 22% {
+    transform: translate3d(-44%, 0, 10px) skewX(-14deg);
+    opacity: 0;
+  }
+  40% { opacity: 0.85; }
+  64%, 100% {
+    transform: translate3d(44%, 0, 10px) skewX(-14deg);
+    opacity: 0;
+  }
+}
+
+.hero-logo-plate-front img {
+  /* slow ambient pulse */
+  animation: logoPulse 6s ease-in-out infinite;
+}
+@keyframes logoPulse {
+  0%, 100% { filter: grayscale(1) contrast(1.18) brightness(1.10); }
+  50%       { filter: grayscale(1) contrast(1.22) brightness(1.16); }
+}
+
+/* Ring behind the logo */
+.hero-logo-ring {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transform: translateZ(-6px);
+  box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.03);
+  animation: ringRotate 18s linear infinite;
+}
+.hero-logo-ring {
+  z-index: 2;
+}
+@keyframes ringRotate {
+  to { transform: translateZ(-6px) rotate(360deg); }
+}
+
+/* ── Loader ───────────────────────────────────────────────────
+   Full-screen preloader: 3-D mark + metal sweep + wordmark.
+──────────────────────────────────────────────────────────────── */
+.loader {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  background: #050505;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 18px;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+.loader.hide {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loader-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+  perspective: 700px;
+}
+
+.loader-mark-inner {
+  position: relative;
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  transform: rotateX(8deg) rotateY(-10deg);
+  transform-style: preserve-3d;
+  animation: loaderFloat 3.0s ease-in-out infinite;
+}
+
+/* Rear plate */
+.loader-mark-inner::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  transform: translateZ(-10px);
+  box-shadow: inset 0 0 28px rgba(255, 255, 255, 0.04);
+}
+
+.loader-mark-inner img {
+  width: 100%;
+  height: 100%;
+  filter: grayscale(1) contrast(1.22) brightness(1.12);
+  transform: translateZ(14px);
+}
+
+/* Metal sweep — one-shot on load */
+.loader-mark-inner i {
+  position: absolute;
+  inset: -20% 0;
+  background: linear-gradient(
+    108deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.75) 48%,
+    transparent 64%
+  );
+  transform: translateX(-130%) skewX(-14deg) translateZ(20px);
+  animation: metalSweep 1.6s var(--ease-out-expo) 0.15s 1 both;
+}
+@keyframes metalSweep {
+  to { transform: translateX(130%) skewX(-14deg) translateZ(20px); }
+}
+
+@keyframes loaderFloat {
+  0%, 100% { transform: rotateX(8deg)  rotateY(-10deg) translateY(0); }
+  50%       { transform: rotateX(10deg) rotateY(-6deg)  translateY(-5px); }
+}
+
+/* Wordmark + tagline entrance */
+.loader-wordmark {
+  opacity: 0;
+  letter-spacing: 0.38em;
+  font-size: 12px;
+  animation: loaderWord 0.7s var(--ease-spring) 0.45s forwards;
+}
+.loader small {
+  opacity: 0;
+  font-size: 7px;
+  letter-spacing: 0.26em;
+  color: #666;
+  animation: loaderWord 0.7s var(--ease-spring) 0.72s forwards;
+}
+@keyframes loaderWord {
+  from { opacity: 0; transform: translateY(10px); letter-spacing: 0.55em; }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* Loading bar */
+.loader-bar {
+  width: 88px;
+  height: 1px;
+  background: #1c1c1c;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.loader-bar-fill {
+  height: 100%;
+  background: #777;
+  animation: barLoad 1.1s ease infinite;
+}
+@keyframes barLoad {
+  0%   { transform: scaleX(0.0); transform-origin: left; }
+  50%  { transform: scaleX(1.0); transform-origin: left; }
+  51%  { transform: scaleX(1.0); transform-origin: right; }
+  100% { transform: scaleX(0.0); transform-origin: right; }
+}
+
+/* ── Navbar ──────────────────────────────────────────────────── */
+.nav {
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.nav-scrolled {
+  background: rgba(5, 5, 5, 0.96) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+}
+.nav nav a {
+  position: relative;
+  transition: opacity 0.25s ease;
+}
+.nav nav a::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: currentColor;
+  transition: width 0.28s var(--ease-out-expo);
+}
+.nav nav a:hover::after { width: 100%; }
+
+/* ── Product card micro-interactions ─────────────────────────── */
+.product-img img {
+  transition: transform 0.7s var(--ease-in-out), filter 0.55s ease;
+}
+.product:hover .product-img img {
+  transform: scale(1.038);
+  filter: saturate(1);
+}
+
+/* Sheen on hover */
+.product-img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    112deg,
+    transparent 22%,
+    rgba(255, 255, 255, 0.07),
+    transparent 60%
+  );
+  transform: translateX(-110%);
+  transition: transform 0.72s var(--ease-in-out);
+  pointer-events: none;
+}
+.product:hover .product-img::after {
+  transform: translateX(110%);
+}
+
+/* Quick-view label */
+.quick {
+  transform: translateY(100%);
+  transition: transform 0.28s var(--ease-out-expo);
+}
+.product:hover .quick {
+  transform: translateY(0);
+}
+
+/* ── Button hover ─────────────────────────────────────────────── */
+.btn {
+  transition:
+    background 0.22s ease,
+    color      0.22s ease,
+    border-color 0.22s ease,
+    transform  0.18s ease;
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0);
+}
+
+/* ── Wishlist heart ───────────────────────────────────────────── */
+.card-wish {
+  transition: opacity 0.2s ease, transform 0.2s var(--ease-spring);
+}
+.card-wish:hover  { transform: scale(1.22); }
+.card-wish:active { transform: scale(0.90); }
+.card-wish.active { opacity: 1; }
+.card-wish.active svg { color: #eee; }
+
+/* Heartbeat on activate */
+@keyframes heartbeat {
+  0%  { transform: scale(1);   }
+  30% { transform: scale(1.38); }
+  60% { transform: scale(0.92); }
+  80% { transform: scale(1.12); }
+  100%{ transform: scale(1);   }
+}
+.card-wish.just-added {
+  animation: heartbeat 0.55s var(--ease-spring);
+}
+
+/* ── Gallery fade ─────────────────────────────────────────────── */
+.gallery-main img {
+  transition: opacity 0.32s ease;
+}
+
+/* ── Cart drawer / size options ───────────────────────────────── */
+.size-options button {
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.16s var(--ease-spring);
+}
+.size-options button:hover:not(:disabled) {
+  border-color: #888;
+  transform: translateY(-1px);
+}
+.size-options button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ── Add-to-bag button ────────────────────────────────────────── */
+.add-btn {
+  transition:
+    background 0.22s ease,
+    color      0.22s ease,
+    transform  0.18s ease,
+    opacity    0.18s ease;
+}
+.add-btn:not(:disabled):hover {
+  background: #fff;
+  transform: translateY(-2px);
+}
+.add-btn:not(:disabled):active {
+  transform: translateY(0);
+}
+
+/* ── Collection card ──────────────────────────────────────────── */
+.collection-card img {
+  transition: transform 0.85s var(--ease-in-out), filter 0.55s ease;
+}
+.collection-card:hover img {
+  transform: scale(1.038);
+  filter: brightness(0.80) saturate(0.92);
+}
+
+/* ── Lookbook images ──────────────────────────────────────────── */
+.lookbook-grid img {
+  transition: filter 0.55s ease, transform 0.85s var(--ease-in-out);
+}
+.lookbook-grid figure:hover img {
+  filter: saturate(1);
+  transform: scale(1.012);
+}
+
+/* ── Accordion ────────────────────────────────────────────────── */
+.accordions details summary {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.accordions details summary:hover { opacity: 0.75; }
+.accordions details[open] summary svg {
+  transform: rotate(180deg);
+}
+.accordions details summary svg {
+  transition: transform 0.25s var(--ease-in-out);
+}
+
+/* ── Modal backdrop ───────────────────────────────────────────── */
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+.modal {
+  animation: modalIn 0.3s var(--ease-out-expo) both;
+}
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.modal-backdrop {
+  animation: backdropIn 0.22s ease both;
+}
+
+/* ── Notice / toast ───────────────────────────────────────────── */
+@keyframes noticeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.notice {
+  animation: noticeIn 0.3s var(--ease-out-expo) both;
+}
+
+/* ── Admin panel row ──────────────────────────────────────────── */
+.stock-line, .table-wrap tr {
+  transition: background 0.18s ease;
+}
+.table-wrap tbody tr:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+/* ── Mobile overrides ─────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .hero-logo-stage {
+    width: 80vw;
+    right: -14%;
+    top: 48%;
+    opacity: 0.72;
+  }
+  .page-transition {
+    transform: translate3d(0, 14px, 0);
+  }
+  [data-reveal] {
+    transform: translate3d(0, 24px, 0);
+  }
+}
+
+/* ── Reduced motion — honour system preference ────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .page-transition,
+  [data-reveal],
+  .hero-copy > * {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  .hero-logo-depth,
+  .loader-mark-inner,
+  .hero-logo-depth img,
+  .hero-logo-depth span {
+    transform: none !important;
+    animation: none !important;
+  }
+  .account-gate-mark,
+  .account-gate-mark img,
+  .account-gate-orbit {
+    animation: none !important;
+  }
+  .hero-logo-depth::after,
+  .loader-mark-inner i,
+  .loader-bar-fill {
+    animation: none !important;
+  }
+  .btn,
+  .add-btn,
+  .size-options button,
+  .card-wish,
+  .collection-card img,
+  .product-img img,
+  .lookbook-grid img {
+    transition: none !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .account-gate {
+    min-height: calc(100vh - 76px);
+    padding: 125px 7vw 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 55px;
+  }
+  .account-gate h1 {
+    font-size: clamp(56px, 16vw, 100px);
+  }
+  .account-gate-lead {
+    margin: 30px 0 26px;
+    font-size: 12px;
+  }
+  .account-gate-mark {
+    width: min(68vw, 310px);
+    align-self: center;
+    order: -1;
+  }
+  .account-gate-index {
+    right: -4%;
+    bottom: 2%;
+  }
+}

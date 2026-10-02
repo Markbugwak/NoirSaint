@@ -30,7 +30,16 @@ export async function createOrder(order){
     payload:{id:`NS-${Date.now().toString(36).toUpperCase()}`,customer:order.customer,items:order.items,total:order.total}
   });
   if(error) throw error;
-  return {id:data.id,status:data.status,createdAt:new Date().toISOString(),customer:order.customer,items:order.items,total:Number(order.total)};
+  const next={id:data.id,status:data.status,createdAt:new Date().toISOString(),customer:order.customer,items:order.items,total:Number(data.total ?? order.total)};
+  try { localStorage.setItem(`${KEY}_last`, JSON.stringify(next)); } catch {}
+  return next;
+}
+
+export function getCachedOrder(id){
+  try {
+    const cached=JSON.parse(localStorage.getItem(`${KEY}_last`));
+    return cached?.id===id ? cached : null;
+  } catch { return null; }
 }
 
 export async function updateOrderStatus(id,status){

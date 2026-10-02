@@ -9,6 +9,6 @@ export async function getCurrentUser(){
 export async function isCurrentUserAdmin(){
   const user=await getCurrentUser();
   if(!user) return false;
-  const {data,error}=await supabase.from('profiles').select('is_admin').eq('id',user.id).maybeSingle();
+  const {data,error}=await supabase.from('noirsaint_profiles').select('is_admin').eq('id',user.id).maybeSingle();
   return !error && Boolean(data?.is_admin);
 }

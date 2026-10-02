@@ -28,6 +28,7 @@ import { formatCurrency } from './utils/formatCurrency/formatCurrency.js';
 import PageTransition from './components/PageTransition/PageTransition.jsx';
 import useReveal from './hooks/useReveal.js';
 import { supabase } from './services/supabase/client.js';
+import { isCurrentUserAdmin } from './services/auth/auth.js';
 
 const money = formatCurrency;
 const go = p => { window.location.hash = p; };
@@ -790,16 +791,18 @@ function Checkout() {
     </main>
   );
 
-  const submit = e => {
+  const [submitting, setSubmitting] = useState(false);
+  const submit = async e => {
     e.preventDefault();
+    setError('');
+    setSubmitting(true);
     try {
-      items.forEach(i => decrementVariant(i.variantId, i.quantity));
-      const order = createOrder({ customer: form, items, total: subtotal });
+      const order = await createOrder({ customer: form, items, total: subtotal });
       clear();
       go(`#order/${order.id}`);
     } catch (err) {
-      setError(err.message);
-    }
+      setError(err.message || 'ORDER COULD NOT BE COMPLETED.');
+    } finally { setSubmitting(false); }
   };
 
   return (
@@ -826,8 +829,8 @@ function Checkout() {
             </select>
           </label>
           {error && <div className="error">{error}</div>}
-          <button className="add-btn" type="submit">
-            PLACE ORDER <ArrowRight size={16} />
+          <button className="add-btn" type="submit" disabled={submitting} aria-busy={submitting}>
+            {submitting ? 'PROCESSING...' : <>PLACE ORDER <ArrowRight size={16} /></>}
           </button>
         </form>
         <aside className="order-summary">
@@ -854,7 +857,12 @@ function Checkout() {
 
 /* ── Order Confirmation ────────────────────────────────────────── */
 function OrderConfirmation({ id }) {
-  const o = getOrders().find(x => x.id === id);
+  const [o, setOrder] = useState(null);
+  useEffect(() => {
+    let active = true;
+    getOrders().then(orders => { if (active) setOrder(orders.find(x => x.id === id) || null); });
+    return () => { active = false; };
+  }, [id]);
   return (
     <main className="confirmation">
       <Package size={35} />
@@ -943,7 +951,17 @@ function Stat({ icon: Icon, label, value, sub }) {
   );
 }
 function AdminOverview() {
-  const ps = getProducts(), orders = getOrders(), rows = inventoryRows();
+  const [ps, setPs] = useState(getProducts());
+  const [orders, setOrders] = useState([]);
+  const [rows, setRows] = useState(inventoryRows());
+  useEffect(() => {
+    let active = true;
+    Promise.all([loadProducts({admin:true}), getOrders({admin:true})]).then(([products, loadedOrders]) => {
+      if (!active) return;
+      setPs(products); setRows(inventoryRows()); setOrders(loadedOrders);
+    });
+    return () => { active = false; };
+  }, []);
   const low  = rows.filter(v => v.stock > 0 && v.stock <= LOW_STOCK_THRESHOLD).length;
   const revenue = orders.reduce((n, order) => n + Number(order.total || 0), 0);
   const pending = orders.filter(order => ['Pending', 'Processing'].includes(order.status)).length;
@@ -985,11 +1003,10 @@ function AdminProducts() {
   const [ps, setPs] = useState(getProducts());
   const [query, setQuery] = useState('');
   const list = ps.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
-  const del = id => {
-    if (confirm('Delete this product?')) {
-      const n = ps.filter(p => p.id !== id);
-      setPs(n); saveProducts(n);
-    }
+  const del = async id => {
+    if (!confirm('Delete this product?')) return;
+    try { const n = ps.filter(p => p.id !== id); await saveProducts(n); setPs(n); }
+    catch (error) { alert(error.message || 'PRODUCT COULD NOT BE DELETED.'); }
   };
   return (
     <AdminLayout title="PRODUCTS">
@@ -1045,7 +1062,7 @@ function ProductForm({ id }) {
     variants: [{ id: `v${Date.now()}`, sku: '', size: 'S', color: 'Black', price: 0, stock: 0, status: 'active' }],
   });
   const set = (k, v) => setForm({ ...form, [k]: v });
-  const save = () => {
+  const save = async () => {
     const ps = getProducts();
     const skuList = form.variants.map(v => String(v.sku || '').trim().toUpperCase());
     const duplicateSku = skuList.some((sku, index) => sku && skuList.indexOf(sku) !== index);
@@ -1056,7 +1073,8 @@ function ProductForm({ id }) {
     if (duplicateSku || existingSku) return alert('Every variant must have a unique SKU.');
     if (invalidVariant) return alert('Each variant needs a size, SKU, positive price, and non-negative stock.');
     const next = existing ? ps.map(p => p.id === id ? form : p) : [form, ...ps];
-    saveProducts(next); go('#admin/products');
+    try { await saveProducts(next); go('#admin/products'); }
+    catch (error) { alert(error.message || 'PRODUCT COULD NOT BE SAVED.'); }
   };
   const addVariant = () => set('variants', [
     ...form.variants,
@@ -1168,7 +1186,10 @@ function AdminInventory() {
                 <td>
                   <input
                     className="stock-input" type="number" min="0" value={v.stock}
-                    onChange={e => { setVariantStock(v.productId, v.id, e.target.value); refresh(); }}
+                    onChange={async e => {
+                      try { await setVariantStock(v.productId, v.id, e.target.value); refresh(); }
+                      catch (error) { alert(error.message || 'STOCK COULD NOT BE UPDATED.'); }
+                    }}
                   />
                 </td>
                 <td>
@@ -1193,7 +1214,8 @@ function AdminInventory() {
   );
 }
 function AdminOrders() {
-  const [orders, setOrders] = useState(getOrders());
+  const [orders, setOrders] = useState([]);
+  useEffect(() => { getOrders({admin:true}).then(setOrders); }, []);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('ALL');
   const [selected, setSelected] = useState([]);
@@ -1202,12 +1224,15 @@ function AdminOrders() {
     const haystack = `${order.id} ${order.customer?.name || ''} ${order.customer?.email || ''}`.toLowerCase();
     return (!query || haystack.includes(query.toLowerCase())) && (status === 'ALL' || order.status === status);
   });
-  const changeStatus = (id, nextStatus) => {
-    const updated = updateOrderStatus(id, nextStatus);
-    if (updated) setOrders(getOrders());
+  const changeStatus = async (id, nextStatus) => {
+    try { const updated = await updateOrderStatus(id, nextStatus); if (updated) setOrders(await getOrders({admin:true})); }
+    catch (error) { alert(error.message || 'ORDER STATUS COULD NOT BE UPDATED.'); }
   };
   const toggleOrder = id => setSelected(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]);
-  const markSelected = nextStatus => { selected.forEach(id => updateOrderStatus(id, nextStatus)); setOrders(getOrders()); setSelected([]); };
+  const markSelected = async nextStatus => {
+    try { await Promise.all(selected.map(id => updateOrderStatus(id, nextStatus))); setOrders(await getOrders({admin:true})); setSelected([]); }
+    catch (error) { alert(error.message || 'ORDERS COULD NOT BE UPDATED.'); }
+  };
   return (
     <AdminLayout title="ORDERS">
       <div className="admin-actions">
@@ -1244,7 +1269,8 @@ function AdminOrders() {
   );
 }
 function AdminCustomers() {
-  const orders = getOrders();
+  const [orders, setOrders] = useState([]);
+  useEffect(() => { getOrders({admin:true}).then(setOrders); }, []);
   const customers = [...new Map(orders.map(order => [order.customer?.email, order.customer])).values()].filter(Boolean);
   const totalSpend = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
   return (
@@ -1302,7 +1328,8 @@ function AdminProfile() {
   );
 }
 function AdminAnalytics() {
-  const orders = getOrders();
+  const [orders, setOrders] = useState([]);
+  useEffect(() => { getOrders({admin:true}).then(setOrders); }, []);
   const rows = orders.flatMap(o => o.items);
   const revenue = orders.reduce((n, o) => n + o.total, 0);
   const bySize = Object.entries(
@@ -1517,7 +1544,12 @@ function AccountPage({ section = 'overview' }) {
     </main>
   );
 
-  const orders = getOrders().filter(o => o.customer?.email === session.email);
+  const [orders, setOrders] = useState([]);
+  useEffect(() => {
+    let active = true;
+    getOrders({userId: session.id}).then(value => { if (active) setOrders(value); });
+    return () => { active = false; };
+  }, [session.id]);
   const { items } = useCart();
 
   if (section === 'orders') return (
@@ -1937,6 +1969,18 @@ function resolveRoute(route, path) {
 }
 
 /* ── App ───────────────────────────────────────────────────────── */
+function AdminGate({ children }) {
+  const [state, setState] = useState('checking');
+  useEffect(() => {
+    let active = true;
+    isCurrentUserAdmin().then(ok => { if (active) setState(ok ? 'allowed' : 'denied'); });
+    return () => { active = false; };
+  }, []);
+  if (state === 'checking') return <main className="account-gate"><div className="account-gate-copy"><p className="eyebrow">NOIRSAINT / ADMIN</p><h1>VERIFYING<br /><em>ACCESS.</em></h1></div></main>;
+  if (state === 'denied') return <main className="account-gate"><div className="account-gate-copy"><p className="eyebrow">NOIRSAINT / ADMIN</p><h1>ACCESS<br /><em>RESTRICTED.</em></h1><p className="account-gate-lead">Administrator access is required for this area.</p><a className="btn primary" href="#login">SIGN IN</a></div></main>;
+  return children;
+}
+
 function App() {
   const route = useRoute();
   useReveal(`${location.pathname}${route}`);
@@ -1978,7 +2022,7 @@ function App() {
       {!isAdminRoute && <Navbar />}
 
       <PageTransition routeKey={`${path}${route}`}>
-        {page}
+        {isAdminRoute ? <AdminGate>{page}</AdminGate> : page}
       </PageTransition>
     </>
   );

@@ -18,6 +18,25 @@ as $
 
 grant select on public.noirsaint_profiles to authenticated;
 
+create or replace function public.noirsaint_handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $
+begin
+  insert into public.noirsaint_profiles (id)
+  values (new.id)
+  on conflict (id) do nothing;
+  return new;
+end;
+$;
+
+drop trigger if exists on_auth_user_created_noirsaint on auth.users;
+create trigger on_auth_user_created_noirsaint
+after insert on auth.users
+for each row execute function public.noirsaint_handle_new_user();
+
 
 create table if not exists public.categories (
   id text primary key,
@@ -165,9 +184,6 @@ create policy "admins manage categories" on public.categories for all using (pub
 drop policy if exists "admins manage collections" on public.collections;
 create policy "admins manage collections" on public.collections for all using (public.noirsaint_is_admin()) with check (public.noirsaint_is_admin());
 
-drop policy if exists "guests can create orders" on public.orders;
-create policy "guests can create orders" on public.orders for insert with check (true);
-
 drop policy if exists "users view own orders" on public.orders;
 create policy "users view own orders" on public.orders for select using (user_id = auth.uid() or public.noirsaint_is_admin());
 
@@ -180,9 +196,6 @@ create policy "admins delete orders" on public.orders for delete using (public.n
 drop policy if exists "users view own order items" on public.order_items;
 create policy "users view own order items" on public.order_items for select
 using (exists (select 1 from public.orders o where o.id = order_id and (o.user_id = auth.uid() or public.noirsaint_is_admin())));
-
-drop policy if exists "order creators can insert items" on public.order_items;
-create policy "order creators can insert items" on public.order_items for insert with check (true);
 
 drop policy if exists "admins manage order items" on public.order_items;
 create policy "admins manage order items" on public.order_items for all using (public.noirsaint_is_admin()) with check (public.noirsaint_is_admin());
@@ -312,7 +325,6 @@ $$;
 grant execute on function public.set_noirsaint_variant_stock(text, integer) to authenticated;
 
 grant select on public.categories, public.collections, public.products, public.product_variants, public.product_images to anon, authenticated;
-grant insert on public.orders, public.order_items to anon, authenticated;
 grant select, update, delete on public.orders to authenticated;
 grant select on public.order_items to authenticated;
 grant insert, update, delete on public.products, public.product_variants, public.product_images, public.categories, public.collections to authenticated;

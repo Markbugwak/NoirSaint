@@ -1,6 +1,5 @@
--- NOIRSAINT commerce layer
--- Adds fashion-store tables without modifying HOTEL+ rooms/bookings/profiles.
--- Requires the profiles + is_admin() objects from the existing HOTEL+ schema.
+-- NOIRSAINT commerce database layer.
+-- This migration is self-contained and contains only fashion-store data and access rules.
 
 create table if not exists public.categories (
   id text primary key,

@@ -21,7 +21,7 @@ import {
   loadProducts
 } from './services/products/products.js';
 import { getOrders, createOrder, updateOrderStatus } from './services/orders/orders.js';
-import { LOW_STOCK_THRESHOLD, inventoryRows, setVariantStock, decrementVariant } from './services/inventory/inventory.js';
+import { LOW_STOCK_THRESHOLD, inventoryRows, setVariantStock } from './services/inventory/inventory.js';
 import { categories, getProductBySlug } from './data/products/products.js';
 import { collections, getCollectionBySlug } from './data/collections/collections.js';
 import { formatCurrency } from './utils/formatCurrency/formatCurrency.js';

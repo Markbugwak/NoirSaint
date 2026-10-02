@@ -3,16 +3,16 @@
 -- No HOTEL+ rooms or bookings dependency.
 
 -- NOIRSAINT AUTH / ADMIN FOUNDATION
-create table if not exists public.profiles (
+create table if not exists public.noirsaint_profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   is_admin boolean not null default false
 );
 
-alter table public.profiles enable row level security;
+alter table public.noirsaint_profiles enable row level security;
 
-drop policy if exists "users can read own NOIRSAINT profile" on public.profiles;
+drop policy if exists "users can read own NOIRSAINT profile" on public.noirsaint_profiles;
 create policy "users can read own NOIRSAINT profile"
-on public.profiles for select using (auth.uid() = id);
+on public.noirsaint_profiles for select using (auth.uid() = id);
 
 create or replace function public.noirsaint_is_admin()
 returns boolean
@@ -21,7 +21,7 @@ stable
 security definer
 set search_path = public
 as $
-  select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
+  select coalesce((select is_admin from public.noirsaint_profiles where id = auth.uid()), false);
 $;
 
 create or replace function public.noirsaint_handle_new_user()
@@ -31,7 +31,7 @@ security definer
 set search_path = public
 as $
 begin
-  insert into public.profiles (id) values (new.id) on conflict (id) do nothing;
+  insert into public.noirsaint_profiles (id) values (new.id) on conflict (id) do nothing;
   return new;
 end;
 $;
@@ -41,7 +41,7 @@ create trigger noirsaint_on_auth_user_created
 after insert on auth.users
 for each row execute function public.noirsaint_handle_new_user();
 
-grant select on public.profiles to authenticated;
+grant select on public.noirsaint_profiles to authenticated;
 
 create table if not exists public.categories (
   id text primary key,

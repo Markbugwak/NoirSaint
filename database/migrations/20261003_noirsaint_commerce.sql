@@ -198,11 +198,6 @@ declare
   item jsonb;
   current_stock integer;
   item_price numeric;
-  product_name text;
-  product_id_value text;
-  variant_sku text;
-  variant_size text;
-  variant_color text;
   computed_total numeric := 0;
   qty integer;
   uid uuid := auth.uid();
@@ -214,21 +209,20 @@ begin
 
   order_id := coalesce(payload->>'id', 'NS-' || upper(to_hex(floor(extract(epoch from clock_timestamp()) * 1000)::bigint)));
 
+  -- Validate every line and calculate the authoritative DB price before creating anything.
   for item in select * from jsonb_array_elements(coalesce(payload->'items', '[]'::jsonb))
   loop
     qty := (item->>'quantity')::integer;
     if qty is null or qty <= 0 then raise exception 'Invalid quantity'; end if;
 
     select pv.stock,
-           case when pv.sale_price is not null then pv.sale_price else coalesce(pv.price, p.base_price) end,
-           p.name, p.id, pv.sku, pv.size, pv.color
-      into current_stock, item_price, product_name, product_id_value, variant_sku, variant_size, variant_color
+           case when pv.sale_price is not null then pv.sale_price else coalesce(pv.price, p.base_price) end
+      into current_stock, item_price
     from public.product_variants pv
     join public.products p on p.id = pv.product_id
     where pv.id = item->>'variantId'
       and pv.status <> 'archived'
-      and p.status = 'published'
-    for update of pv;
+      and p.status = 'published';
 
     if current_stock is null then
       raise exception 'Variant % does not exist or is unavailable', item->>'variantId';
@@ -238,31 +232,6 @@ begin
     end if;
 
     computed_total := computed_total + (item_price * qty);
-
-    update public.product_variants
-    set stock = stock - qty,
-        status = case when stock - qty > 0 then 'active' else 'sold_out' end,
-        updated_at = now()
-    where id = item->>'variantId';
-
-    item := jsonb_build_object(
-      'variantId', item->>'variantId',
-      'productId', product_id_value,
-      'name', product_name,
-      'sku', variant_sku,
-      'size', variant_size,
-      'color', variant_color,
-      'price', item_price,
-      'quantity', qty
-    );
-
-    insert into public.order_items (
-      order_id, product_id, variant_id, product_name, sku, size, color,
-      unit_price, quantity, line_total
-    ) values (
-      order_id, product_id_value, item->>'variantId', product_name,
-      variant_sku, variant_size, variant_color, item_price, qty, item_price * qty
-    );
   end loop;
 
   if computed_total <= 0 then raise exception 'Order must contain at least one item'; end if;
@@ -277,6 +246,41 @@ begin
     payload->'customer'->>'city', payload->'customer'->>'province',
     payload->'customer'->>'payment', computed_total, computed_total, 'Processing'
   );
+
+  -- Lock, decrement, and snapshot each variant's authoritative price.
+  for item in select * from jsonb_array_elements(coalesce(payload->'items', '[]'::jsonb))
+  loop
+    qty := (item->>'quantity')::integer;
+
+    select pv.stock,
+           case when pv.sale_price is not null then pv.sale_price else coalesce(pv.price, p.base_price) end
+      into current_stock, item_price
+    from public.product_variants pv
+    join public.products p on p.id = pv.product_id
+    where pv.id = item->>'variantId'
+    for update of pv;
+
+    if current_stock < qty then
+      raise exception 'Insufficient stock for variant %', item->>'variantId';
+    end if;
+
+    update public.product_variants
+    set stock = stock - qty,
+        status = case when stock - qty > 0 then 'active' else 'sold_out' end,
+        updated_at = now()
+    where id = item->>'variantId';
+
+    insert into public.order_items (
+      order_id, product_id, variant_id, product_name, sku, size, color,
+      unit_price, quantity, line_total
+    )
+    select
+      order_id, p.id, pv.id, p.name, pv.sku, pv.size, pv.color,
+      item_price, qty, item_price * qty
+    from public.product_variants pv
+    join public.products p on p.id = pv.product_id
+    where pv.id = item->>'variantId';
+  end loop;
 
   return jsonb_build_object('id', order_id, 'status', 'Processing', 'total', computed_total);
 end;

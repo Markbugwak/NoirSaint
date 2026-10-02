@@ -1,6 +1,47 @@
 -- NOIRSAINT commerce layer
--- Adds fashion-store tables without modifying HOTEL+ rooms/bookings/profiles.
--- Requires the profiles + is_admin() objects from the existing HOTEL+ schema.
+-- Adds only the NOIRSAINT fashion-store data layer.
+-- No HOTEL+ rooms or bookings dependency.
+
+-- NOIRSAINT AUTH / ADMIN FOUNDATION
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  is_admin boolean not null default false
+);
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "users can read own NOIRSAINT profile" on public.profiles;
+create policy "users can read own NOIRSAINT profile"
+on public.profiles for select using (auth.uid() = id);
+
+create or replace function public.noirsaint_is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $
+  select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
+$;
+
+create or replace function public.noirsaint_handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $
+begin
+  insert into public.profiles (id) values (new.id) on conflict (id) do nothing;
+  return new;
+end;
+$;
+
+drop trigger if exists noirsaint_on_auth_user_created on auth.users;
+create trigger noirsaint_on_auth_user_created
+after insert on auth.users
+for each row execute function public.noirsaint_handle_new_user();
+
+grant select on public.profiles to authenticated;
 
 create table if not exists public.categories (
   id text primary key,
@@ -123,46 +164,46 @@ drop policy if exists "collections are public" on public.collections;
 create policy "collections are public" on public.collections for select using (true);
 
 drop policy if exists "published products are public" on public.products;
-create policy "published products are public" on public.products for select using (status = 'published' or public.is_admin());
+create policy "published products are public" on public.products for select using (status = 'published' or public.noirsaint_is_admin());
 
 drop policy if exists "admins manage products" on public.products;
-create policy "admins manage products" on public.products for all using (public.is_admin()) with check (public.is_admin());
+create policy "admins manage products" on public.products for all using (public.noirsaint_is_admin()) with check (public.noirsaint_is_admin());
 
 drop policy if exists "published variants are public" on public.product_variants;
 create policy "published variants are public" on public.product_variants for select
-using (exists (select 1 from public.products p where p.id = product_id and (p.status = 'published' or public.is_admin())));
+using (exists (select 1 from public.products p where p.id = product_id and (p.status = 'published' or public.noirsaint_is_admin())));
 
 drop policy if exists "admins manage variants" on public.product_variants;
-create policy "admins manage variants" on public.product_variants for all using (public.is_admin()) with check (public.is_admin());
+create policy "admins manage variants" on public.product_variants for all using (public.noirsaint_is_admin()) with check (public.noirsaint_is_admin());
 
 drop policy if exists "published images are public" on public.product_images;
 create policy "published images are public" on public.product_images for select
-using (exists (select 1 from public.products p where p.id = product_id and (p.status = 'published' or public.is_admin())));
+using (exists (select 1 from public.products p where p.id = product_id and (p.status = 'published' or public.noirsaint_is_admin())));
 
 drop policy if exists "admins manage images" on public.product_images;
-create policy "admins manage images" on public.product_images for all using (public.is_admin()) with check (public.is_admin());
+create policy "admins manage images" on public.product_images for all using (public.noirsaint_is_admin()) with check (public.noirsaint_is_admin());
 
 drop policy if exists "admins manage categories" on public.categories;
-create policy "admins manage categories" on public.categories for all using (public.is_admin()) with check (public.is_admin());
+create policy "admins manage categories" on public.categories for all using (public.noirsaint_is_admin()) with check (public.noirsaint_is_admin());
 
 drop policy if exists "admins manage collections" on public.collections;
-create policy "admins manage collections" on public.collections for all using (public.is_admin()) with check (public.is_admin());
+create policy "admins manage collections" on public.collections for all using (public.noirsaint_is_admin()) with check (public.noirsaint_is_admin());
 
 drop policy if exists "users view own orders" on public.orders;
-create policy "users view own orders" on public.orders for select using (user_id = auth.uid() or public.is_admin());
+create policy "users view own orders" on public.orders for select using (user_id = auth.uid() or public.noirsaint_is_admin());
 
 drop policy if exists "admins manage orders" on public.orders;
-create policy "admins manage orders" on public.orders for update using (public.is_admin()) with check (public.is_admin());
+create policy "admins manage orders" on public.orders for update using (public.noirsaint_is_admin()) with check (public.noirsaint_is_admin());
 
 drop policy if exists "admins delete orders" on public.orders;
-create policy "admins delete orders" on public.orders for delete using (public.is_admin());
+create policy "admins delete orders" on public.orders for delete using (public.noirsaint_is_admin());
 
 drop policy if exists "users view own order items" on public.order_items;
 create policy "users view own order items" on public.order_items for select
-using (exists (select 1 from public.orders o where o.id = order_id and (o.user_id = auth.uid() or public.is_admin())));
+using (exists (select 1 from public.orders o where o.id = order_id and (o.user_id = auth.uid() or public.noirsaint_is_admin())));
 
 drop policy if exists "admins manage order items" on public.order_items;
-create policy "admins manage order items" on public.order_items for all using (public.is_admin()) with check (public.is_admin());
+create policy "admins manage order items" on public.order_items for all using (public.noirsaint_is_admin()) with check (public.noirsaint_is_admin());
 
 create or replace function public.create_noirsaint_order(payload jsonb)
 returns jsonb
@@ -246,7 +287,7 @@ set search_path = public
 as $$
 declare result public.product_variants;
 begin
-  if not public.is_admin() then raise exception 'Admin access required'; end if;
+  if not public.noirsaint_is_admin() then raise exception 'Admin access required'; end if;
   if p_stock < 0 then raise exception 'Stock cannot be negative'; end if;
   update public.product_variants
   set stock = p_stock,
@@ -259,6 +300,9 @@ begin
 end;
 $$;
 
+revoke all on function public.create_noirsaint_order(jsonb) from public;
+grant execute on function public.create_noirsaint_order(jsonb) to anon, authenticated;
+revoke all on function public.set_noirsaint_variant_stock(text, integer) from public;
 grant execute on function public.set_noirsaint_variant_stock(text, integer) to authenticated;
 
 grant select on public.categories, public.collections, public.products, public.product_variants, public.product_images to anon, authenticated;

@@ -283,25 +283,53 @@ export async function getProductBySlug(slug) {
 }
 
 export async function saveProducts(items) {
-  console.warn(
-    'saveProducts() is temporarily disabled during Supabase migration.'
-  );
+  productCache = Array.isArray(items) ? items : productCache;
+  if (!isSupabaseConfigured()) return productCache;
 
-  productCache = Array.isArray(items)
-    ? items
-    : productCache;
+  const products = productCache;
+  const productRows = products.map(p => ({
+    id: p.id, name: p.name, slug: p.slug, sku: p.sku || null,
+    category_id: p.categoryId || null, collection_id: p.collectionId || null,
+    brand: p.brand || 'NOIRSAINT',
+    base_price: Number(p.price || 0),
+    compare_at_price: p.compareAtPrice ?? null,
+    sale_price: p.salePrice ?? null,
+    status: p.status || 'published',
+    featured: Boolean(p.featured), new_arrival: Boolean(p.newArrival),
+    bestseller: Boolean(p.bestseller), material: p.material || null,
+    color: p.color || null, gender: p.gender || null, style: p.style || null,
+    fit: p.fit || null, care_instructions: p.care || null,
+    country_of_production: p.origin || null, tags: p.tags || [],
+    description: p.description || null, short_description: p.shortDescription || null
+  }));
+
+  const { error: productError } = await supabase.from('products').upsert(productRows);
+  if (productError) throw productError;
+
+  const variants = products.flatMap(p => (p.variants || []).map(v => ({
+    id: v.id, product_id: p.id, sku: v.sku, size_type: v.sizeType || null,
+    size: v.size, color: v.color || p.color || null,
+    price: v.price ?? null, sale_price: null, stock: Number(v.stock || 0),
+    image_url: v.image || null, status: Number(v.stock || 0) > 0 ? 'active' : 'sold_out'
+  })));
+  if (variants.length) {
+    const { error } = await supabase.from('product_variants').upsert(variants);
+    if (error) throw error;
+  }
+
+  const images = products.flatMap(p => (p.images || []).map((url, index) => ({
+    id: `${p.id}-image-${index + 1}`, product_id: p.id, image_url: url, sort_order: index
+  })));
+  if (images.length) {
+    const { error } = await supabase.from('product_images').upsert(images);
+    if (error) throw error;
+  }
 
   return productCache;
 }
 
 export async function resetProducts() {
-  console.warn(
-    'resetProducts() is temporarily disabled during Supabase migration.'
-  );
-
-  await loadProducts();
-
-  return productCache;
+  return loadProducts();
 }
 
 function getLocalFallback() {

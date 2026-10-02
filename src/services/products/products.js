@@ -109,6 +109,7 @@ export async function saveProducts(items){
   }
   const ids=next.map(p=>p.id);
   if(ids.length) await supabase.from('products').delete().not('id','in',`(${ids.join(',')})`);
+  else await supabase.from('products').delete().neq('id','');
   productCache=next;
   return productCache;
 }

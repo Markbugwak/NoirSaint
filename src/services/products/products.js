@@ -83,7 +83,7 @@ function mapProduct(product, variants = [], images = []) {
 }
 
 async function fetchProductsFromSupabase() {
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured()) {
     return [];
   }
 
@@ -170,7 +170,7 @@ export async function getProduct(id) {
     return cached;
   }
 
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured()) {
     return null;
   }
 
@@ -230,7 +230,7 @@ export async function getProductBySlug(slug) {
     return cached;
   }
 
-  if (!isSupabaseConfigured) {
+  if (!isSupabaseConfigured()) {
     return null;
   }
 

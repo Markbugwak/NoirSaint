@@ -47,7 +47,7 @@ export async function refreshOrders(userId = null) {
   return mapped;
 }
 
-export function createOrder(order) {
+export async function createOrder(order) {
   const local = {
     ...order,
     id: order.id || `NS-${Date.now().toString(36).toUpperCase()}`,
@@ -57,19 +57,16 @@ export function createOrder(order) {
   writeLocal([local, ...readLocal()]);
 
   if (isSupabaseConfigured()) {
-    const payload = {
-      id: local.id,
-      customer: local.customer,
-      items: local.items,
-      total: local.total
-    };
-    supabase.rpc('create_noirsaint_order', { payload }).then(({ data, error }) => {
-      if (error) console.error('NOIRSAINT checkout error:', error);
-      if (data?.id && data.id !== local.id) {
-        const next = readLocal().map(x => x.id === local.id ? { ...x, id: data.id } : x);
-        writeLocal(next);
-      }
-    });
+    const payload = { id: local.id, customer: local.customer, items: local.items, total: local.total };
+    const { data, error } = await supabase.rpc('create_noirsaint_order', { payload });
+    if (error) {
+      writeLocal(readLocal().filter(x => x.id !== local.id));
+      throw error;
+    }
+    if (data?.id && data.id !== local.id) {
+      local.id = data.id;
+      writeLocal([local, ...readLocal().filter(x => x.id !== order.id)]);
+    }
   }
   return local;
 }

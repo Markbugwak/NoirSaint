@@ -20,7 +20,7 @@ import {
   resetProducts,
   loadProducts
 } from './services/products/products.js';
-import { getOrders, createOrder, updateOrderStatus } from './services/orders/orders.js';
+import { getOrders, refreshOrders, createOrder, updateOrderStatus } from './services/orders/orders.js';
 import { LOW_STOCK_THRESHOLD, inventoryRows, setVariantStock } from './services/inventory/inventory.js';
 import { categories, getProductBySlug } from './data/products/products.js';
 import { collections, getCollectionBySlug } from './data/collections/collections.js';
@@ -28,6 +28,7 @@ import { formatCurrency } from './utils/formatCurrency/formatCurrency.js';
 import PageTransition from './components/PageTransition/PageTransition.jsx';
 import useReveal from './hooks/useReveal.js';
 import { supabase } from './services/supabase/client.js';
+import { isAdmin } from './services/auth/auth.js';
 
 const money = formatCurrency;
 const go = p => { window.location.hash = p; };
@@ -907,6 +908,21 @@ function AdminNav({ collapsed, onToggle }) {
 }
 function AdminLayout({ children, title, subtitle }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [access, setAccess] = useState('checking');
+
+  useEffect(() => {
+    let active = true;
+    isAdmin().then(ok => { if (active) setAccess(ok ? 'granted' : 'denied'); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (access === 'granted') refreshOrders().catch(() => {});
+  }, [access]);
+
+  if (access === 'checking') return <main className="simple"><p className="eyebrow">NOIRSAINT / SECURITY</p><h1>VERIFYING ACCESS.</h1></main>;
+  if (access === 'denied') return <main className="simple"><p className="eyebrow">NOIRSAINT / SECURITY</p><h1>ADMIN ACCESS REQUIRED.</h1><p>You must sign in with a NOIRSAINT administrator account.</p><a className="btn primary" href="#login">SIGN IN</a></main>;
+
   return (
     <main className={`admin${collapsed ? ' admin-collapsed' : ''}`}>
       <AdminNav collapsed={collapsed} onToggle={() => setCollapsed(value => !value)} />

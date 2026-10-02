@@ -148,9 +148,6 @@ create policy "admins manage categories" on public.categories for all using (pub
 drop policy if exists "admins manage collections" on public.collections;
 create policy "admins manage collections" on public.collections for all using (public.is_admin()) with check (public.is_admin());
 
-drop policy if exists "guests can create orders" on public.orders;
-create policy "guests can create orders" on public.orders for insert with check (true);
-
 drop policy if exists "users view own orders" on public.orders;
 create policy "users view own orders" on public.orders for select using (user_id = auth.uid() or public.is_admin());
 
@@ -163,9 +160,6 @@ create policy "admins delete orders" on public.orders for delete using (public.i
 drop policy if exists "users view own order items" on public.order_items;
 create policy "users view own order items" on public.order_items for select
 using (exists (select 1 from public.orders o where o.id = order_id and (o.user_id = auth.uid() or public.is_admin())));
-
-drop policy if exists "order creators can insert items" on public.order_items;
-create policy "order creators can insert items" on public.order_items for insert with check (true);
 
 drop policy if exists "admins manage order items" on public.order_items;
 create policy "admins manage order items" on public.order_items for all using (public.is_admin()) with check (public.is_admin());
@@ -268,7 +262,6 @@ $$;
 grant execute on function public.set_noirsaint_variant_stock(text, integer) to authenticated;
 
 grant select on public.categories, public.collections, public.products, public.product_variants, public.product_images to anon, authenticated;
-grant insert on public.orders, public.order_items to authenticated;
 grant select, update, delete on public.orders to authenticated;
 grant select on public.order_items to authenticated;
 grant insert, update, delete on public.products, public.product_variants, public.product_images, public.categories, public.collections to authenticated;

@@ -22,7 +22,19 @@ function mapOrder(row) {
       province: row.shipping_province,
       payment: row.payment_method
     },
-    items: row.order_items || [],
+    items: (row.order_items || []).map(item => ({
+      key: item.id,
+      productId: item.product_id,
+      variantId: item.variant_id,
+      name: item.product_name,
+      sku: item.sku,
+      size: item.size,
+      color: item.color,
+      price: Number(item.unit_price || 0),
+      quantity: Number(item.quantity || 0),
+      lineTotal: Number(item.line_total || 0),
+      image: ''
+    })),
     total: Number(row.total || 0),
     status: row.status,
     createdAt: row.created_at

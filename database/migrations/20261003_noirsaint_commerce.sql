@@ -177,12 +177,19 @@ security definer
 set search_path = public
 as $$
 declare
-  order_id text;
+  order_id text := 'NS-' || upper(to_hex(floor(extract(epoch from clock_timestamp()) * 1000)::bigint));
   item jsonb;
-  current_stock integer;
+  variant_row public.product_variants;
+  product_row public.products;
+  qty integer;
+  unit_price numeric(12,2);
+  line_total numeric(12,2);
+  order_total numeric(12,2) := 0;
   uid uuid := auth.uid();
 begin
-  order_id := coalesce(payload->>'id', 'NS-' || upper(to_hex(floor(extract(epoch from clock_timestamp()) * 1000)::bigint)));
+  if payload->'customer'->>'name' is null or payload->'customer'->>'email' is null then
+    raise exception 'Customer name and email are required';
+  end if;
 
   insert into public.orders (
     id, user_id, customer_name, customer_email, customer_phone,
@@ -192,47 +199,50 @@ begin
     order_id, uid, payload->'customer'->>'name', payload->'customer'->>'email',
     payload->'customer'->>'phone', payload->'customer'->>'address',
     payload->'customer'->>'city', payload->'customer'->>'province',
-    payload->'customer'->>'payment', (payload->>'total')::numeric,
-    (payload->>'total')::numeric, 'Processing'
+    payload->'customer'->>'payment', 0, 0, 'Processing'
   );
 
-  for item in select * from jsonb_array_elements(payload->'items')
+  for item in select * from jsonb_array_elements(coalesce(payload->'items','[]'::jsonb))
   loop
-    select stock into current_stock
+    qty := (item->>'quantity')::integer;
+    if qty is null or qty < 1 then raise exception 'Invalid quantity'; end if;
+
+    select * into variant_row
     from public.product_variants
     where id = item->>'variantId'
     for update;
 
-    if current_stock is null then
-      raise exception 'Variant % does not exist', item->>'variantId';
-    end if;
+    if variant_row.id is null then raise exception 'Variant % does not exist', item->>'variantId'; end if;
+    if variant_row.stock < qty then raise exception 'Insufficient stock for %', variant_row.sku; end if;
 
-    if current_stock < (item->>'quantity')::integer then
-      raise exception 'Insufficient stock for variant %', item->>'variantId';
-    end if;
+    select * into product_row from public.products where id = variant_row.product_id;
+    if product_row.id is null or product_row.status <> 'published' then raise exception 'Product is unavailable'; end if;
+
+    unit_price := coalesce(variant_row.sale_price, variant_row.price, product_row.sale_price, product_row.base_price);
+    line_total := unit_price * qty;
+    order_total := order_total + line_total;
 
     update public.product_variants
-    set stock = stock - (item->>'quantity')::integer,
-        status = case when stock - (item->>'quantity')::integer > 0 then 'active' else 'sold_out' end,
+    set stock = stock - qty,
+        status = case when stock - qty > 0 then 'active' else 'sold_out' end,
         updated_at = now()
-    where id = item->>'variantId';
+    where id = variant_row.id;
 
     insert into public.order_items (
       order_id, product_id, variant_id, product_name, sku, size, color,
       unit_price, quantity, line_total
     ) values (
-      order_id, item->>'productId', item->>'variantId', item->>'name',
-      item->>'sku', item->>'size', item->>'color',
-      (item->>'price')::numeric, (item->>'quantity')::integer,
-      ((item->>'price')::numeric * (item->>'quantity')::integer)
+      order_id, product_row.id, variant_row.id, product_row.name, variant_row.sku,
+      variant_row.size, variant_row.color, unit_price, qty, line_total
     );
   end loop;
 
-  return jsonb_build_object('id', order_id, 'status', 'Processing');
+  if order_total <= 0 then raise exception 'Order contains no valid items'; end if;
+
+  update public.orders set subtotal = order_total, total = order_total where id = order_id;
+  return jsonb_build_object('id', order_id, 'status', 'Processing', 'total', order_total);
 end;
 $$;
-
-grant execute on function public.create_noirsaint_order(jsonb) to anon, authenticated;
 
 create or replace function public.set_noirsaint_variant_stock(p_variant_id text, p_stock integer)
 returns public.product_variants
@@ -258,7 +268,7 @@ $$;
 grant execute on function public.set_noirsaint_variant_stock(text, integer) to authenticated;
 
 grant select on public.categories, public.collections, public.products, public.product_variants, public.product_images to anon, authenticated;
-grant insert on public.orders, public.order_items to anon, authenticated;
+grant insert on public.orders, public.order_items to authenticated;
 grant select, update, delete on public.orders to authenticated;
 grant select on public.order_items to authenticated;
 grant insert, update, delete on public.products, public.product_variants, public.product_images, public.categories, public.collections to authenticated;

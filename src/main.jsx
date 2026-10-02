@@ -21,7 +21,7 @@ import {
   loadProducts
 } from './services/products/products.js';
 import { getOrders, createOrder, updateOrderStatus } from './services/orders/orders.js';
-import { LOW_STOCK_THRESHOLD, inventoryRows, setVariantStock, decrementVariant } from './services/inventory/inventory.js';
+import { LOW_STOCK_THRESHOLD, inventoryRows, setVariantStock } from './services/inventory/inventory.js';
 import { categories, getProductBySlug } from './data/products/products.js';
 import { collections, getCollectionBySlug } from './data/collections/collections.js';
 import { formatCurrency } from './utils/formatCurrency/formatCurrency.js';
@@ -790,15 +790,15 @@ function Checkout() {
     </main>
   );
 
-  const submit = e => {
+  const submit = async e => {
     e.preventDefault();
+    setError('');
     try {
-      items.forEach(i => decrementVariant(i.variantId, i.quantity));
-      const order = createOrder({ customer: form, items, total: subtotal });
+      const order = await createOrder({ customer: form, items, total: subtotal });
       clear();
       go(`#order/${order.id}`);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Unable to place your order. Please try again.');
     }
   };
 
@@ -1202,12 +1202,12 @@ function AdminOrders() {
     const haystack = `${order.id} ${order.customer?.name || ''} ${order.customer?.email || ''}`.toLowerCase();
     return (!query || haystack.includes(query.toLowerCase())) && (status === 'ALL' || order.status === status);
   });
-  const changeStatus = (id, nextStatus) => {
-    const updated = updateOrderStatus(id, nextStatus);
+  const changeStatus = async (id, nextStatus) => {
+    const updated = await updateOrderStatus(id, nextStatus);
     if (updated) setOrders(getOrders());
   };
   const toggleOrder = id => setSelected(current => current.includes(id) ? current.filter(value => value !== id) : [...current, id]);
-  const markSelected = nextStatus => { selected.forEach(id => updateOrderStatus(id, nextStatus)); setOrders(getOrders()); setSelected([]); };
+  const markSelected = async nextStatus => { await Promise.all(selected.map(id => updateOrderStatus(id, nextStatus))); setOrders(getOrders()); setSelected([]); };
   return (
     <AdminLayout title="ORDERS">
       <div className="admin-actions">

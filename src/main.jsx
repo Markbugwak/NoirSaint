@@ -20,7 +20,7 @@ import {
   resetProducts,
   loadProducts
 } from './services/products/products.js';
-import { getOrders, createOrder, updateOrderStatus } from './services/orders/orders.js';
+import { getOrders, getCachedOrder, createOrder, updateOrderStatus } from './services/orders/orders.js';
 import { LOW_STOCK_THRESHOLD, inventoryRows, setVariantStock } from './services/inventory/inventory.js';
 import { categories, getProductBySlug } from './data/products/products.js';
 import { collections, getCollectionBySlug } from './data/collections/collections.js';
@@ -860,7 +860,7 @@ function OrderConfirmation({ id }) {
   const [o, setOrder] = useState(null);
   useEffect(() => {
     let active = true;
-    getOrders().then(orders => { if (active) setOrder(orders.find(x => x.id === id) || null); });
+    getOrders().then(orders => { if (active) setOrder(orders.find(x => x.id === id) || getCachedOrder(id)); });
     return () => { active = false; };
   }, [id]);
   return (

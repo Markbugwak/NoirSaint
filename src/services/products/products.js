@@ -90,12 +90,21 @@ function mapProduct(product, variants = [], images = []) {
       size: variant.size,
       color: variant.color,
 
+      basePrice: Number(
+        variant.price ??
+        product.base_price ??
+        0
+      ),
+      salePrice:
+        variant.sale_price !== null
+          ? Number(variant.sale_price)
+          : null,
       price:
         variant.sale_price !== null
           ? Number(variant.sale_price)
           : Number(
-              variant.price ||
-              product.base_price ||
+              variant.price ??
+              product.base_price ??
               0
             ),
 
@@ -361,7 +370,7 @@ export async function saveProducts(items) {
   const variants = products.flatMap(p => (p.variants || []).map(v => ({
     id: v.id, product_id: p.id, sku: v.sku, size_type: v.sizeType || null,
     size: v.size, color: v.color || p.color || null,
-    price: v.price ?? null, sale_price: v.salePrice ?? null, stock: Number(v.stock || 0),
+    price: v.basePrice ?? v.price ?? null, sale_price: v.salePrice ?? null, stock: Number(v.stock || 0),
     image_url: v.image || null, status: Number(v.stock || 0) > 0 ? 'active' : 'sold_out'
   })));
   if (variants.length) {

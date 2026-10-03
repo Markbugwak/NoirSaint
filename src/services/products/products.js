@@ -1,8 +1,33 @@
 ﻿import { supabase, isSupabaseConfigured } from '../supabase/client.js';
+import { products as seedProducts } from '../../data/products/products.js';
+import { collections as seedCollections } from '../../data/collections/collections.js';
 
 const LOCAL_KEY = 'noirsaint_products_v2';
 
 let productCache = getLocalFallback();
+
+function slugify(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+function catalogCategories(items) {
+  return [...new Set(items.map(p => p.category).filter(Boolean))].map(name => ({
+    id: slugify(name),
+    name,
+    slug: slugify(name)
+  }));
+}
+
+function catalogCollections(items) {
+  return [...new Set(items.map(p => p.collection).filter(Boolean))].map(name => ({
+    id: slugify(name),
+    name,
+    slug: slugify(name)
+  }));
+}
 
 function mapProduct(product, variants = [], images = []) {
   return {
@@ -287,9 +312,24 @@ export async function saveProducts(items) {
   if (!isSupabaseConfigured()) return productCache;
 
   const products = productCache;
+  const categoryRows = catalogCategories(products);
+  const collectionRows = catalogCollections(products);
+
+  if (categoryRows.length) {
+    const { error } = await supabase.from('categories').upsert(categoryRows);
+    if (error) throw error;
+  }
+  if (collectionRows.length) {
+    const { error } = await supabase.from('collections').upsert(collectionRows);
+    if (error) throw error;
+  }
+
+  const categoryIds = new Map(categoryRows.map(row => [row.name, row.id]));
+  const collectionIds = new Map(collectionRows.map(row => [row.name, row.id]));
   const productRows = products.map(p => ({
     id: p.id, name: p.name, slug: p.slug, sku: p.sku || null,
-    category_id: p.categoryId || null, collection_id: p.collectionId || null,
+    category_id: p.categoryId || categoryIds.get(p.category) || null,
+    collection_id: p.collectionId || collectionIds.get(p.collection) || null,
     brand: p.brand || 'NOIRSAINT',
     base_price: Number(p.price || 0),
     compare_at_price: p.compareAtPrice ?? null,
@@ -379,5 +419,8 @@ function getLocalFallback() {
     // Ignore invalid localStorage data.
   }
 
-  return [];
+  return seedProducts.map(product => ({
+    ...product,
+    variants: product.variants.map(variant => ({ ...variant }))
+  }));
 }

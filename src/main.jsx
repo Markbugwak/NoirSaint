@@ -1315,14 +1315,14 @@ function AdminProfile() {
         <section className="panel admin-profile-card">
           <div className="admin-card-heading"><div><p className="eyebrow">SECURITY / AUTH</p><h2>SECURITY</h2></div><ShieldCheck size={22} /></div>
           <div className="security-row"><LockKeyhole size={16} /><div><b>PASSWORD</b><span>Last updated 30 days ago</span></div><a href="#forgot-password">UPDATE</a></div>
-          <div className="security-row"><CheckCircle2 size={16} /><div><b>TWO-FACTOR AUTHENTICATION</b><span>Enabled via Authenticator App</span></div><button type="button" onClick={() => alert('Two-factor settings will be connected to Supabase MFA.')}>CONFIGURE</button></div>
+          <div className="security-row"><CheckCircle2 size={16} /><div><b>TWO-FACTOR AUTHENTICATION</b><span>Manage MFA in Supabase Auth.</span></div><button type="button" onClick={() => alert('Two-factor settings will be connected to Supabase MFA.')}>CONFIGURE</button></div>
           <div className="security-row"><Monitor size={16} /><div><b>CURRENT SESSION</b><span>Supabase Auth · 192.168.x.x</span></div></div>
         </section>
         <section className="panel admin-profile-card admin-audit-card">
           <div className="admin-card-heading"><div><p className="eyebrow">SECURITY / AUDIT</p><h2>RECENT ADMIN ACTIVITY</h2></div></div>
-          <div className="audit-row"><Monitor size={16} /><div><b>Logged in from Chrome on macOS</b><span>Current session · Oct 1, 2026</span></div><span className="status">CURRENT</span></div>
-          <div className="audit-row"><Package size={16} /><div><b>Updated product SKU NS-001-BLA-XS</b><span>2 hours ago</span></div></div>
-          <div className="admin-profile-actions"><button className="btn" type="button" onClick={() => alert('All other sessions will be revoked through Supabase Auth.')}>SIGN OUT OF ALL DEVICES</button><button className="btn danger-action" type="button" onClick={signOut}><LogOut size={14} /> SIGN OUT</button></div>
+          <div className="audit-row"><Monitor size={16} /><div><b>Current Supabase Auth session</b><span>Live session state is managed by Supabase.</span></div><span className="status">CURRENT</span></div>
+          <div className="audit-row"><Package size={16} /><div><b>Product changes</b><span>Detailed audit history is not stored by the current NOIRSAINT schema.</span></div></div>
+          <div className="admin-profile-actions"><button className="btn" type="button" onClick={() => alert('Sign out of other sessions using Supabase Auth session management.')}>SIGN OUT OF ALL DEVICES</button><button className="btn danger-action" type="button" onClick={signOut}><LogOut size={14} /> SIGN OUT</button></div>
         </section>
       </div>
     </AdminLayout>
@@ -1614,7 +1614,7 @@ function AccountPage({ section = 'overview' }) {
       <div className="panel">
         <p><b>{session.name}</b></p>
         <p className="muted">{session.email}</p>
-        <button className="btn" onClick={() => { clearSession(); go('#home'); }}>SIGN OUT</button>
+        <button className="btn" onClick={async () => { await supabase?.auth.signOut(); clearSession(); go('#home'); }}>SIGN OUT</button>
       </div>
     </main>
   );
@@ -1626,7 +1626,7 @@ function AccountPage({ section = 'overview' }) {
       <h1>SETTINGS.</h1>
       <div className="panel">
         <p>Account preferences are stored locally in this prototype. Production authentication and customer data should be connected to the backend before launch.</p>
-        <button className="btn" onClick={() => { clearSession(); go('#home'); }}>SIGN OUT</button>
+        <button className="btn" onClick={async () => { await supabase?.auth.signOut(); clearSession(); go('#home'); }}>SIGN OUT</button>
       </div>
     </main>
   );
@@ -1828,7 +1828,7 @@ function ForgotPassword() {
   return (
     <AuthLayout title="RESET PASSWORD.">
       <form className="form-panel" onSubmit={submit} noValidate>
-        <p>For this local storefront build, password recovery requires connecting a production authentication provider.</p>
+        <p>Password recovery is handled by Supabase Auth. Check your email for the secure reset link.</p>
         <div className="auth-field-group"><label htmlFor="reset-email">EMAIL</label><input id="reset-email" type="email" value={email} onChange={e => setEmail(e.target.value)} /></div>
         {message && <div className="error" role="alert">{message}</div>}
         <button className="btn primary" type="submit" disabled={loading} aria-busy={loading}>{loading ? 'SENDING...' : 'SEND RESET LINK'}</button>

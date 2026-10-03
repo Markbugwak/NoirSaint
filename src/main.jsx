@@ -1001,10 +1001,15 @@ function AdminProducts() {
   const [ps, setPs] = useState(getProducts());
   const [query, setQuery] = useState('');
   const list = ps.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
-  const del = id => {
-    if (confirm('Delete this product?')) {
-      const n = ps.filter(p => p.id !== id);
-      setPs(n); saveProducts(n);
+  const del = async id => {
+    if (!confirm('Delete this product?')) return;
+    const n = ps.filter(p => p.id !== id);
+    try {
+      await saveProducts(n);
+      setPs(n);
+    } catch (error) {
+      console.error('NOIRSAINT product delete error:', error);
+      alert('Could not save the product change. Please try again.');
     }
   };
   return (
@@ -1061,7 +1066,7 @@ function ProductForm({ id }) {
     variants: [{ id: `v${Date.now()}`, sku: '', size: 'S', color: 'Black', price: 0, stock: 0, status: 'active' }],
   });
   const set = (k, v) => setForm({ ...form, [k]: v });
-  const save = () => {
+  const save = async () => {
     const ps = getProducts();
     const skuList = form.variants.map(v => String(v.sku || '').trim().toUpperCase());
     const duplicateSku = skuList.some((sku, index) => sku && skuList.indexOf(sku) !== index);
@@ -1072,7 +1077,13 @@ function ProductForm({ id }) {
     if (duplicateSku || existingSku) return alert('Every variant must have a unique SKU.');
     if (invalidVariant) return alert('Each variant needs a size, SKU, positive price, and non-negative stock.');
     const next = existing ? ps.map(p => p.id === id ? form : p) : [form, ...ps];
-    saveProducts(next); go('#admin/products');
+    try {
+      await saveProducts(next);
+      go('#admin/products');
+    } catch (error) {
+      console.error('NOIRSAINT product save error:', error);
+      alert('Could not save this product. Check your Supabase configuration and admin access.');
+    }
   };
   const addVariant = () => set('variants', [
     ...form.variants,

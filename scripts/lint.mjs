@@ -11,7 +11,7 @@ const files = [
   'database/migrations/20261003_noirsaint_commerce.sql',
 ];
 
-const forbidden = /HOTEL\\+?|\\brooms\\b|\\bbookings\\b|public\\.is_admin\\s*\\(/i;
+const forbidden = /HOTEL\\+?|\\brooms\\b|\\bbookings\\b|public\.is_admin\s*\(/i;
 const malformedSql = /create or replace function[\\s\\S]*?\\bas \\$(?:\\r?\\n)/i;
 
 for (const file of files) {

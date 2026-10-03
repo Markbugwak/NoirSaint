@@ -18,8 +18,9 @@
    Uses will-change: opacity, transform for GPU compositing.
 ──────────────────────────────────────────────────────────────── */
 .page-transition {
-  opacity: 1;
-  transform: none;
+  opacity: 0;
+  transform: translate3d(0, 22px, 0);
+  will-change: opacity, transform;
 }
 .page-transition.page-visible {
   animation: pageIn 0.62s var(--ease-out-expo) both;

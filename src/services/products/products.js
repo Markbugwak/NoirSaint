@@ -121,7 +121,18 @@ async function fetchProductsFromSupabase() {
     return [];
   }
 
-  const { data, error } = await supabase
+  const { data: userData } = await supabase.auth.getUser();
+  let admin = false;
+  if (userData?.user) {
+    const { data: profile } = await supabase
+      .from('noirsaint_profiles')
+      .select('is_admin')
+      .eq('id', userData.user.id)
+      .maybeSingle();
+    admin = Boolean(profile?.is_admin);
+  }
+
+  let query = supabase
     .from('products')
     .select(`
       *,
@@ -154,10 +165,13 @@ async function fetchProductsFromSupabase() {
         alt_text
       )
     `)
-    .eq('status', 'published')
     .order('created_at', {
       ascending: false
     });
+
+  if (!admin) query = query.eq('status', 'published');
+
+  const { data, error } = await query;
 
   if (error) {
     console.error(

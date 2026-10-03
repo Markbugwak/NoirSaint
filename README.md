@@ -1,52 +1,356 @@
-# NOIRSAINT — Updated Fashion E-commerce System
+# NOIRSAINT
 
-**CRAFTED WITHOUT LIMITS.**
+> **CRAFTED WITHOUT LIMITS.**
 
-NOIRSAINT is a dark-luxury fashion e-commerce experience built with React + Vite and the supplied NOIRSAINT visual assets.
+NOIRSAINT is a dark-luxury fashion commerce platform designed around a refined storefront experience, variant-level inventory, authoritative order processing, and a maintainable production-oriented architecture.
 
-## Included
+The project combines a responsive React storefront with Supabase-backed commerce infrastructure, an administrative workspace, and a motion system built to support the brand without compromising usability.
 
-- 30-product catalog using the supplied product imagery
-- Product detail pages with gallery, size selector, size guide, wishlist-ready UI, quantity controls, and SKU display
-- Product variants with product-specific sizes, color, SKU, price, and stock
-- Size-specific inventory: buying one size only reduces that exact variant
-- Cart persistence with exact size/SKU/variant information
-- Checkout and order creation with variant-level order items
-- Customer order confirmation
-- Shop filters, search, category filtering, sorting, and availability-aware size display
-- Admin overview, product CRUD, variant inventory editor, inventory dashboard, CSV export, orders, and analytics
-- Low-stock and out-of-stock status handling
-- Mobile-responsive customer and admin interfaces
+---
 
-## Run
+## Product Highlights
+
+- **30-product curated catalog** with supplied NOIRSAINT imagery
+- Product detail experiences with galleries, size guides, SKU visibility, quantity controls, and wishlist interactions
+- **Variant-level commerce model** for size, color, SKU, price, and stock
+- **Variant-specific inventory** so purchasing one size never decrements another
+- Persistent cart state with exact product, size, color, and SKU information
+- Supabase-backed authentication and customer orders
+- Authoritative checkout through the `create_noirsaint_order` database RPC
+- Shop search, category filtering, sorting, availability-aware size display, and collections
+- Administrative product management and variant inventory controls
+- Inventory dashboard, low-stock/out-of-stock handling, order management, analytics, and CSV export
+- Responsive customer and admin interfaces
+- Page transitions, scroll reveals, hero motion, 3D logo layers, parallax interaction, and reduced-motion support
+
+---
+
+## Technology
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 19 |
+| Build | Vite 8 |
+| Language | JavaScript / JSX |
+| Commerce backend | Supabase |
+| Authentication | Supabase Auth |
+| Database | PostgreSQL via Supabase |
+| Icons | Lucide React |
+| Quality | Custom lint checks + Node test runner |
+| CI | GitHub Actions |
+| Deployment | Vercel / static SPA hosting |
+
+---
+
+## Architecture
+
+NOIRSAINT uses Supabase as the production source of truth for commerce data.
+
+```text
+React + Vite
+    │
+    ├── Storefront
+    ├── Customer account
+    ├── Checkout
+    └── Admin workspace
+            │
+            ▼
+       Supabase Client
+            │
+            ├── Auth
+            ├── Catalog
+            ├── Inventory
+            └── Orders
+                    │
+                    ▼
+              PostgreSQL
+```
+
+Browser `localStorage` is used for UI-oriented persistence and caching. Critical commerce operations are not treated as client-authoritative.
+
+### Commerce model
+
+```text
+Product
+  └── Variant
+        ├── Size
+        ├── Color
+        ├── SKU
+        ├── Price
+        └── Stock
+```
+
+This makes inventory changes precise and prevents unrelated variants from being affected by a purchase.
+
+---
+
+## Getting Started
+
+### Requirements
+
+- Node.js 22+
+- npm
+- A Supabase project for production-backed development
+
+### Install
 
 ```bash
 npm install
+```
+
+### Run locally
+
+```bash
 npm run dev
 ```
 
-The production storefront uses Supabase for the catalog, authentication, inventory, and orders. Browser localStorage is retained only as a short-lived UI cache/fallback; checkout and inventory changes are authoritative in Supabase.
+### Production build
 
-## Admin
+```bash
+npm run build
+```
 
-Open the store, then use `#admin` in the URL (or the admin links surfaced by the application) to access the management interface.
+### Preview the production build
 
-## Variant model
+```bash
+npm run preview
+```
 
-Each product follows:
+---
 
-`Product → Variant → Size/Color/SKU → Stock`
+## Environment Configuration
 
-For example, if Signature Tee / Black / M is purchased twice, only the M variant is reduced. Other sizes remain unchanged.
+Create a local `.env` file from `.env.example`.
 
-## Final system notes
+Required production configuration:
 
-- Customer-facing prices use centralized USD formatting via `src/utils/formatCurrency/formatCurrency.js`.
-- Lookbook and Collections support both hash navigation and direct path access under a Vite/static SPA deployment.
-- Product size guides use category-specific SVG assets under `public/images/size-chart/`.
-- Wishlist state persists locally in the browser.
-- Customer authentication uses Supabase Auth when configured.
-- Admin access is controlled by `public.noirsaint_profiles.is_admin`.
-- Checkout uses the `create_noirsaint_order` RPC so variant prices and stock are authoritative in the database.
-- Apply `database/migrations/20261003_noirsaint_commerce.sql`, then the three catalog seed migrations, to populate a fresh NOIRSAINT Supabase project.
-- Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (or the anon key) in the deployment environment.
+```env
+VITE_SUPABASE_URL=https://rqakholjzmhhzngdmzec.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLIC_PUBLISHABLE_KEY
+VITE_SITE_URL=https://your-deployment.example
+```
+
+Optional values:
+
+```env
+VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
+VITE_CONTACT_EMAIL=replace-with-real-contact@example.com
+VITE_ALLOW_OFFLINE_CATALOG=false
+```
+
+Only a public/publishable Supabase key belongs in the frontend environment. **Never expose a Supabase service-role key, database password, JWT secret, or other privileged credential in Vite environment variables.**
+
+---
+
+## Database Setup
+
+The production commerce schema lives in:
+
+```text
+database/migrations/20261003_noirsaint_commerce.sql
+```
+
+For a fresh NOIRSAINT Supabase project:
+
+1. Apply the commerce migration.
+2. Apply the three catalog seed migrations.
+3. Configure the frontend environment variables.
+4. Start the application and verify catalog, authentication, inventory, and checkout flows.
+
+The commerce migration provides:
+
+- Profiles and admin state
+- Categories and collections
+- Products and product variants
+- Product images
+- Orders and order items
+- Indexes
+- Row Level Security policies
+- Admin authorization helper
+- New-user profile handling
+- Authoritative order creation
+- Stock updates with admin authorization
+
+The checkout RPC validates price and stock in the database, locks the relevant variants, decrements inventory, and stores order-item snapshots.
+
+---
+
+## Administration
+
+The application includes a dedicated administrative workspace for authorized NOIRSAINT administrators.
+
+Admin authorization is controlled by:
+
+```text
+public.noirsaint_profiles.is_admin
+```
+
+Administrative capabilities include:
+
+- Product creation and editing
+- Variant and inventory management
+- Low-stock monitoring
+- Order management
+- Inventory reporting
+- CSV export
+- Store analytics
+
+The application does not rely on a client-side flag alone to authorize privileged database operations; Supabase RLS and database-side authorization are part of the commerce design.
+
+---
+
+## Quality & CI
+
+NOIRSAINT uses automated checks before changes are considered integration-safe.
+
+```bash
+npm run lint
+npm test
+npm run build
+```
+
+GitHub Actions runs the same verification pipeline on `main` and pull requests:
+
+```text
+npm ci
+  ↓
+npm run lint
+  ↓
+npm test
+  ↓
+npm run build
+```
+
+The current `main` branch has a passing CI verification after the latest repository cleanup.
+
+---
+
+## Motion & Interaction System
+
+Motion is treated as part of the product system rather than decorative effects added independently to each page.
+
+The interface includes:
+
+- Route/page transitions
+- Scroll-reveal animations
+- Hero stagger effects
+- 3D NOIRSAINT logo layers
+- Pointer-driven logo parallax
+- Logo sheen, pulse, and ring motion
+- Product/card interaction states
+- Gallery and modal transitions
+- Cart and wishlist feedback
+- Admin interaction states
+- Mobile-specific motion behavior
+- `prefers-reduced-motion` support
+
+The goal is controlled, brand-aligned movement that reinforces hierarchy and interaction feedback while remaining usable across devices.
+
+---
+
+## Project Structure
+
+```text
+.
+├── database/
+│   └── migrations/
+├── public/
+│   ├── images/
+│   └── ...
+├── scripts/
+│   └── lint.mjs
+├── src/
+│   ├── components/
+│   ├── services/
+│   ├── styles/
+│   ├── utils/
+│   └── main.jsx
+├── .env.example
+├── index.html
+├── package.json
+├── vercel.json
+└── README.md
+```
+
+The application is intentionally maintained as a focused NOIRSAINT codebase without unrelated product domains or legacy server scaffolding.
+
+---
+
+## Payments
+
+The checkout interface currently supports the configured NOIRSAINT payment-method experience, including:
+
+- Cash on Delivery
+- GCash
+- Bank Transfer
+
+**A live third-party payment gateway is not currently connected.**
+
+Payment-provider credentials and gateway integration should be added as a separate production step rather than treating the existing payment-method UI as proof of live payment processing.
+
+---
+
+## Deployment
+
+The application is structured for Vercel/static SPA deployment.
+
+The included `vercel.json` provides:
+
+- SPA route rewriting
+- Security response headers
+- Supabase connection allowances
+- Basic browser security policies
+
+Before production launch, configure the Vercel environment variables and run a production smoke test covering:
+
+1. Storefront navigation
+2. Catalog loading
+3. Authentication
+4. Product and variant selection
+5. Cart persistence
+6. Checkout/order creation
+7. Inventory decrement
+8. Customer order history
+9. Admin authentication
+10. Admin inventory/order operations
+11. Mobile layout and motion behavior
+
+---
+
+## Current Project Status
+
+| Area | Status |
+| --- | --- |
+| Storefront | Complete |
+| Commerce database | Complete |
+| Catalog | Complete |
+| Variant inventory | Complete |
+| Authentication | Implemented |
+| Admin workspace | Implemented |
+| Orders | Implemented |
+| Motion / 3D interaction | Implemented |
+| Automated lint / test / build | Passing |
+| Vercel production deployment | Pending |
+| Production smoke test | Pending |
+| Live payment gateway | Pending |
+
+Passing CI confirms that the repository builds and its automated checks pass. It does **not** by itself certify production deployment, payment processing, or every live Supabase/RLS scenario.
+
+---
+
+## Contributing
+
+NOIRSAINT is maintained with a production-minded workflow:
+
+1. Keep changes scoped to the NOIRSAINT product.
+2. Preserve the existing commerce and security model.
+3. Avoid introducing client-side authority for inventory, pricing, or privileged operations.
+4. Respect the established motion system and reduced-motion behavior.
+5. Run lint, tests, and a production build before submitting changes.
+6. Keep dependencies and architecture intentional rather than adding abstractions without a clear product need.
+
+---
+
+## License
+
+No open-source license has been declared for this project. Unless otherwise stated by the project owner, the source code and brand assets should be treated as proprietary.

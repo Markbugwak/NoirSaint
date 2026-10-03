@@ -306,14 +306,37 @@ export async function saveProducts(items) {
   const { error: productError } = await supabase.from('products').upsert(productRows);
   if (productError) throw productError;
 
+  const dbProducts = await supabase.from('products').select('id');
+  if (dbProducts.error) throw dbProducts.error;
+  const keepProductIds = new Set(products.map(p => p.id));
+  const removedProductIds = (dbProducts.data || [])
+    .map(row => row.id)
+    .filter(id => !keepProductIds.has(id));
+
+  if (removedProductIds.length) {
+    const { error } = await supabase.from('products').delete().in('id', removedProductIds);
+    if (error) throw error;
+  }
+
   const variants = products.flatMap(p => (p.variants || []).map(v => ({
     id: v.id, product_id: p.id, sku: v.sku, size_type: v.sizeType || null,
     size: v.size, color: v.color || p.color || null,
-    price: v.price ?? null, sale_price: null, stock: Number(v.stock || 0),
+    price: v.price ?? null, sale_price: v.salePrice ?? null, stock: Number(v.stock || 0),
     image_url: v.image || null, status: Number(v.stock || 0) > 0 ? 'active' : 'sold_out'
   })));
   if (variants.length) {
     const { error } = await supabase.from('product_variants').upsert(variants);
+    if (error) throw error;
+  }
+
+  const dbVariants = await supabase.from('product_variants').select('id');
+  if (dbVariants.error) throw dbVariants.error;
+  const keepVariantIds = new Set(variants.map(v => v.id));
+  const removedVariantIds = (dbVariants.data || [])
+    .map(row => row.id)
+    .filter(id => !keepVariantIds.has(id));
+  if (removedVariantIds.length) {
+    const { error } = await supabase.from('product_variants').delete().in('id', removedVariantIds);
     if (error) throw error;
   }
 
@@ -322,6 +345,17 @@ export async function saveProducts(items) {
   })));
   if (images.length) {
     const { error } = await supabase.from('product_images').upsert(images);
+    if (error) throw error;
+  }
+
+  const dbImages = await supabase.from('product_images').select('id');
+  if (dbImages.error) throw dbImages.error;
+  const keepImageIds = new Set(images.map(image => image.id));
+  const removedImageIds = (dbImages.data || [])
+    .map(row => row.id)
+    .filter(id => !keepImageIds.has(id));
+  if (removedImageIds.length) {
+    const { error } = await supabase.from('product_images').delete().in('id', removedImageIds);
     if (error) throw error;
   }
 

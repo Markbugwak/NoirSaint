@@ -5,9 +5,13 @@ export default function PageTransition({ children, routeKey }) {
 
 	useEffect(() => {
 		setVisible(false);
-		window.scrollTo({ top: 0, behavior: 'instant' });
-		const timer = window.setTimeout(() => setVisible(true), 40);
-		return () => window.clearTimeout(timer);
+		window.scrollTo({ top: 0, behavior: 'auto' });
+
+		const frame = window.requestAnimationFrame(() => {
+			setVisible(true);
+		});
+
+		return () => window.cancelAnimationFrame(frame);
 	}, [routeKey]);
 
 	return (

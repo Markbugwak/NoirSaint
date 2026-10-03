@@ -13,9 +13,9 @@ on public.noirsaint_profiles for select using (auth.uid() = id);
 
 create or replace function public.noirsaint_is_admin()
 returns boolean language sql stable security definer set search_path = public
-as $
+as $$
   select coalesce((select is_admin from public.noirsaint_profiles where id = auth.uid()), false);
-$;
+$$;
 
 grant select on public.noirsaint_profiles to authenticated;
 
@@ -24,14 +24,14 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $
+as $$
 begin
   insert into public.noirsaint_profiles (id)
   values (new.id)
   on conflict (id) do nothing;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists on_auth_user_created_noirsaint on auth.users;
 create trigger on_auth_user_created_noirsaint

@@ -76,8 +76,9 @@ export async function createOrder(order) {
       throw error;
     }
     if (data?.id && data.id !== local.id) {
+      const previousId = local.id;
       local.id = data.id;
-      writeLocal([local, ...readLocal().filter(x => x.id !== order.id)]);
+      writeLocal([local, ...readLocal().filter(x => x.id !== previousId)]);
     }
   }
   return local;

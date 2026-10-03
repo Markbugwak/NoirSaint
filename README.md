@@ -25,13 +25,7 @@ npm install
 npm run dev
 ```
 
-For the local API scaffold:
-
-```bash
-npm run server
-```
-
-The storefront uses browser localStorage for its demo persistence layer, so it works immediately without requiring a separate database service. The service modules are separated so a production database/API can be connected without changing the customer-facing data model.
+The production storefront uses Supabase for the catalog, authentication, inventory, and orders. Browser localStorage is retained only as a short-lived UI cache/fallback; checkout and inventory changes are authoritative in Supabase.
 
 ## Admin
 
@@ -51,4 +45,8 @@ For example, if Signature Tee / Black / M is purchased twice, only the M variant
 - Lookbook and Collections support both hash navigation and direct path access under a Vite/static SPA deployment.
 - Product size guides use category-specific SVG assets under `public/images/size-chart/`.
 - Wishlist state persists locally in the browser.
-- The included account screens provide local browser account/session behavior for the prototype. Production deployment should connect these screens to the existing server/database layer before handling real customer credentials.
+- Customer authentication uses Supabase Auth when configured.
+- Admin access is controlled by `public.noirsaint_profiles.is_admin`.
+- Checkout uses the `create_noirsaint_order` RPC so variant prices and stock are authoritative in the database.
+- Apply `database/migrations/20261003_noirsaint_commerce.sql`, then the three catalog seed migrations, to populate a fresh NOIRSAINT Supabase project.
+- Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (or the anon key) in the deployment environment.

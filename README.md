@@ -120,25 +120,11 @@ npm run preview
 
 ## Environment Configuration
 
-Create a local `.env` file from `.env.example`.
+Environment variables are intentionally **not documented with real values in this README**.
 
-Required production configuration:
+For local development, create a private `.env` file using the repository's `.env.example` as the template. Configure the required Supabase and site settings in your local environment or deployment provider.
 
-```env
-VITE_SUPABASE_URL=https://rqakholjzmhhzngdmzec.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLIC_PUBLISHABLE_KEY
-VITE_SITE_URL=https://your-deployment.example
-```
-
-Optional values:
-
-```env
-VITE_SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_KEY
-VITE_CONTACT_EMAIL=replace-with-real-contact@example.com
-VITE_ALLOW_OFFLINE_CATALOG=false
-```
-
-Only a public/publishable Supabase key belongs in the frontend environment. **Never expose a Supabase service-role key, database password, JWT secret, or other privileged credential in Vite environment variables.**
+**Never commit `.env` or expose privileged credentials.** In particular, never place a Supabase service-role key, database password, JWT secret, or other privileged credential in frontend code or public repository files.
 
 ---
 
@@ -154,7 +140,7 @@ For a fresh NOIRSAINT Supabase project:
 
 1. Apply the commerce migration.
 2. Apply the three catalog seed migrations.
-3. Configure the frontend environment variables.
+3. Configure the frontend environment variables privately.
 4. Start the application and verify catalog, authentication, inventory, and checkout flows.
 
 The commerce migration provides:
@@ -301,7 +287,7 @@ The included `vercel.json` provides:
 - Supabase connection allowances
 - Basic browser security policies
 
-Before production launch, configure the Vercel environment variables and run a production smoke test covering:
+Before production launch, configure deployment environment variables privately and run a production smoke test covering:
 
 1. Storefront navigation
 2. Catalog loading
@@ -348,6 +334,7 @@ NOIRSAINT is maintained with a production-minded workflow:
 4. Respect the established motion system and reduced-motion behavior.
 5. Run lint, tests, and a production build before submitting changes.
 6. Keep dependencies and architecture intentional rather than adding abstractions without a clear product need.
+7. Never commit private environment files or credentials.
 
 ---
 

@@ -1544,8 +1544,21 @@ function AccountPage({ section = 'overview' }) {
     </main>
   );
 
-  const orders = getOrders().filter(o => o.customer?.email === session.email);
+  const [accountOrders, setAccountOrders] = useState(() =>
+    getOrders().filter(o => o.customer?.email === session.email)
+  );
   const { items } = useCart();
+
+  useEffect(() => {
+    let active = true;
+    refreshOrders(session.id).then(next => {
+      if (!active) return;
+      setAccountOrders(next.filter(o => o.customer?.email === session.email));
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [session.id, session.email]);
+
+  const orders = accountOrders;
 
   if (section === 'orders') return (
     <main className="simple account-page">

@@ -1,4 +1,4 @@
-import { getProducts } from '../products/products.js';
+import { getProducts, saveProducts } from '../products/products.js';
 import { supabase, isSupabaseConfigured } from '../supabase/client.js';
 
 export const LOW_STOCK_THRESHOLD = 5;
@@ -30,6 +30,9 @@ export function setVariantStock(productId, variantId, stock) {
       if (error) console.error('NOIRSAINT inventory error:', error);
     });
   }
+  void saveProducts(products).catch(error => {
+    console.error('NOIRSAINT inventory cache sync error:', error);
+  });
   return products;
 }
 

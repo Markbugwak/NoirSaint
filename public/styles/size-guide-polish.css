@@ -1,0 +1,390 @@
+/* NOIRSAINT Size Guide — visual polish layer
+   Keeps the existing sizing logic intact while tightening hierarchy,
+   spacing, responsive behavior, and luxury dark-mode presentation. */
+
+.size-guide-backdrop {
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255,255,255,.055), transparent 42%),
+    rgba(0,0,0,.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.premium-size-guide {
+  background: linear-gradient(180deg, #101010 0%, #0b0b0b 100%);
+  border: 1px solid #303030;
+  box-shadow: 0 28px 90px rgba(0,0,0,.72);
+  scrollbar-width: thin;
+  scrollbar-color: #3a3a3a transparent;
+}
+
+.premium-size-guide::-webkit-scrollbar {
+  width: 5px;
+}
+.premium-size-guide::-webkit-scrollbar-track {
+  background: transparent;
+}
+.premium-size-guide::-webkit-scrollbar-thumb {
+  background: #353535;
+}
+
+.size-guide-modal .close {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #2d2d2d;
+  background: rgba(255,255,255,.025);
+  transition: border-color .25s ease, background .25s ease, transform .25s ease;
+}
+.size-guide-modal .close:hover {
+  border-color: #777;
+  background: #181818;
+  transform: rotate(90deg);
+}
+.size-guide-modal .close:focus-visible,
+.size-guide-tabs button:focus-visible,
+.unit-toggle button:focus-visible,
+.size-finder-fields input:focus-visible,
+.measure-toggle:focus-visible {
+  outline: 1px solid #aaa;
+  outline-offset: 3px;
+}
+
+.size-guide-hero {
+  padding-bottom: 6px;
+}
+.size-guide-hero .eyebrow {
+  margin-bottom: 15px;
+  color: #777;
+}
+.size-guide-hero h2 {
+  max-width: 760px;
+  margin-bottom: 16px;
+  text-wrap: balance;
+}
+.size-guide-hero > p:last-child {
+  max-width: 680px;
+  margin-top: 0;
+}
+
+.size-guide-controls {
+  min-height: 62px;
+  border-color: #292929;
+  box-shadow: 0 12px 28px rgba(0,0,0,.18);
+}
+.size-guide-tabs {
+  min-width: 0;
+}
+.size-guide-tabs button {
+  position: relative;
+  transition: color .2s ease, background .2s ease;
+}
+.size-guide-tabs button::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 4px;
+  height: 1px;
+  background: #eee;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform .25s ease;
+}
+.size-guide-tabs button.active::after {
+  transform: scaleX(1);
+}
+.size-guide-tabs button:hover {
+  color: #ddd;
+}
+.unit-toggle {
+  background: #0a0a0a;
+}
+.unit-toggle button {
+  min-width: 44px;
+  transition: color .2s ease, background .2s ease;
+}
+.unit-toggle button.active {
+  background: #e9e9e9;
+  color: #050505;
+}
+
+.size-finder {
+  grid-template-columns: minmax(220px, .9fr) minmax(300px, 1.5fr) minmax(112px, auto);
+  gap: 28px;
+  padding: 28px 0;
+}
+.size-finder > div:first-child {
+  min-width: 0;
+}
+.size-finder h3 {
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+.size-finder-fields {
+  align-self: end;
+  min-width: 0;
+  gap: 10px;
+}
+.size-finder-fields label {
+  min-width: 0;
+  line-height: 1.2;
+}
+.size-finder-fields input {
+  min-width: 0;
+  height: 46px;
+  border-color: #303030;
+  border-radius: 0;
+  transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+}
+.size-finder-fields input:hover {
+  border-color: #4a4a4a;
+}
+.size-finder-fields input:focus {
+  border-color: #888;
+  background: #151515;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.05);
+}
+.size-finder-result {
+  min-width: 112px;
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  background: #111;
+  border-color: #383838;
+}
+.size-finder-result strong {
+  line-height: 1;
+}
+
+.size-table-wrap {
+  padding-top: 30px;
+}
+.size-table-wrap > h3 {
+  line-height: 1.35;
+  margin: 0 0 9px;
+  padding-bottom: 2px;
+}
+.size-table-note {
+  margin-bottom: 18px !important;
+}
+.size-table-wrap table {
+  margin-top: 18px;
+}
+.size-table-wrap th,
+.size-table-wrap td {
+  padding: 13px 10px;
+}
+.size-table-wrap tbody tr {
+  transition: background .2s ease;
+}
+.size-table-wrap tbody tr:hover {
+  background: rgba(255,255,255,.025);
+}
+
+.garment-reference {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 10px 18px;
+  margin-top: 18px;
+  padding: 16px 0 4px;
+  border-top: 1px solid #242424;
+  line-height: 1.5;
+}
+.garment-reference b {
+  white-space: nowrap;
+}
+.garment-reference span {
+  min-width: 0;
+}
+
+.fit-guide-grid {
+  margin-top: 12px;
+  padding: 30px 0;
+}
+.fit-guide-grid > div:first-child {
+  min-width: 0;
+}
+.fit-guide-grid h3 {
+  line-height: 1.25;
+}
+.fit-guide-list {
+  gap: 12px 24px;
+}
+.fit-guide-list span {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #202020;
+}
+.fit-guide-list b {
+  display: inline-block;
+  margin-right: 7px;
+}
+
+.measure-toggle {
+  min-height: 54px;
+  transition: color .2s ease, background .2s ease;
+}
+.measure-toggle:hover {
+  color: #fff;
+  background: rgba(255,255,255,.02);
+}
+.measure-guide {
+  padding: 24px 0 8px;
+}
+.measure-guide div {
+  padding: 0 16px 16px 0;
+  border-bottom: 1px solid #202020;
+}
+.measure-guide b {
+  display: block;
+  margin-bottom: 7px;
+}
+.measure-guide p {
+  margin: 0;
+}
+
+.size-guide-disclaimer {
+  margin-top: 28px;
+  border: 1px solid #242424;
+  background: #0f0f0f;
+}
+
+@media (max-width: 900px) {
+  .premium-size-guide {
+    max-width: 94vw;
+  }
+  .size-finder {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .size-finder-fields {
+    width: 100%;
+  }
+  .size-finder-result {
+    width: 100%;
+    min-height: 64px;
+  }
+  .garment-reference {
+    grid-template-columns: 1fr 1fr;
+  }
+  .garment-reference b {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .size-guide-backdrop {
+    padding: 10px;
+  }
+  .premium-size-guide {
+    max-width: none;
+    width: 100%;
+    max-height: 94svh;
+    padding: 22px 18px 24px;
+  }
+  .size-guide-modal .close {
+    right: 14px;
+    top: 14px;
+    width: 36px;
+    height: 36px;
+  }
+  .size-guide-hero {
+    padding-right: 46px;
+    margin-bottom: 20px;
+  }
+  .size-guide-hero h2 {
+    font-size: clamp(38px, 12vw, 62px);
+    line-height: .92;
+  }
+  .size-guide-controls {
+    margin-inline: -18px;
+    padding-inline: 18px;
+  }
+  .size-guide-tabs button {
+    padding-inline: 8px;
+    font-size: 8px;
+  }
+  .size-finder {
+    padding: 24px 0;
+  }
+  .size-finder-fields {
+    grid-template-columns: repeat(3, minmax(0,1fr));
+  }
+  .size-finder-fields input {
+    padding-inline: 9px;
+  }
+  .garment-reference {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .garment-reference b {
+    grid-column: auto;
+  }
+  .fit-guide-grid {
+    gap: 20px;
+  }
+  .fit-guide-list {
+    grid-template-columns: 1fr;
+  }
+  .measure-guide {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .size-guide-hero {
+    padding-right: 40px;
+  }
+  .size-guide-hero > p:last-child {
+    font-size: 10px;
+  }
+  .size-guide-controls {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    align-items: center;
+    gap: 8px;
+  }
+  .size-guide-tabs {
+    min-width: 0;
+  }
+  .size-guide-tabs button {
+    padding-inline: 7px;
+  }
+  .unit-toggle {
+    position: static;
+  }
+  .size-finder-fields {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .size-finder-fields label {
+    display: grid;
+    grid-template-columns: 70px minmax(0,1fr);
+    align-items: center;
+    gap: 10px;
+  }
+  .size-finder-fields input {
+    height: 44px;
+  }
+  .size-table-wrap {
+    margin-inline: -18px;
+    padding-inline: 18px;
+  }
+  .measure-guide {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .size-guide-modal .close,
+  .size-guide-tabs button,
+  .size-guide-tabs button::after,
+  .unit-toggle button,
+  .size-finder-fields input,
+  .measure-toggle {
+    transition: none;
+  }
+}

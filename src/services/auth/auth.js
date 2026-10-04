@@ -37,10 +37,6 @@ export async function isAdmin() {
   if (!isSupabaseConfigured()) return false;
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) return false;
-  const { data, error } = await supabase
-    .from('noirsaint_profiles')
-    .select('is_admin')
-    .eq('id', userData.user.id)
-    .maybeSingle();
-  return !error && Boolean(data?.is_admin);
+  const { data, error } = await supabase.rpc('noirsaint_is_admin');
+  return !error && data === true;
 }

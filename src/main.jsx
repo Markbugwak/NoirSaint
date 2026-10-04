@@ -525,42 +525,140 @@ function Shop() {
   );
 }
 
-/* ── Size Guide Modal ──────────────────────────────────────────── */
-function sizeChartForProduct(product) {
-  const c = (product?.category || '').toLowerCase();
-  const t = (product?.variantType || '').toLowerCase();
-  if (t === 'shoes' || c === 'footwear' || c === 'shoes') return '/images/size-chart/shoe-size-chart.svg';
-  if (t === 'rings') return '/images/size-chart/ring-size-chart.svg';
-  if (c === 'tops')      return '/images/size-chart/tops-size-chart.svg';
-  if (c === 'outerwear') return '/images/size-chart/outerwear-size-chart.svg';
-  if (c === 'bottoms')   return '/images/size-chart/bottoms-size-chart.svg';
-  if (c === 'dresses')   return '/images/size-chart/dress-size-chart.svg';
-  return '/images/size-chart/clothing-size-chart.svg';
-}
-
+/* ── Premium Size Guide ───────────────────────────────────────── */
 function SizeGuide({ close, product }) {
-  const src = sizeChartForProduct(product);
-  // Close on Escape
+  const category = (product?.category || '').toLowerCase();
+  const type = (product?.variantType || '').toLowerCase();
+  const initialTab = type === 'shoes' || category === 'shoes' || category === 'footwear' ? 'SHOES'
+    : type === 'rings' ? 'RINGS'
+    : category === 'bottoms' ? 'BOTTOMS'
+    : category === 'dresses' ? 'DRESSES'
+    : category === 'outerwear' ? 'CLOTHING'
+    : 'CLOTHING';
+  const [tab, setTab] = useState(initialTab);
+  const [unit, setUnit] = useState('in');
+  const [measurements, setMeasurements] = useState({ chest: '', waist: '', hip: '' });
+  const [showMeasure, setShowMeasure] = useState(false);
+
   useEffect(() => {
     const f = e => { if (e.key === 'Escape') close(); };
     addEventListener('keydown', f);
     return () => removeEventListener('keydown', f);
   }, [close]);
 
+  const clothing = [
+    ['XS','34','34','44','34–36','28–30','34–36','16.5','24.5','26'],
+    ['S','36','36','46','36–38','30–32','36–38','17','25','27'],
+    ['M','38','38','48','38–40','32–34','38–40','17.5','25.5','28'],
+    ['L','40','40','50','40–42','34–36','40–42','18','26','29'],
+    ['XL','42','42','52','42–44','36–38','42–44','18.5','26.5','30'],
+    ['XXL','44','44','54','44–46','38–40','44–46','19','27','31'],
+  ];
+  const bottoms = [
+    ['XS','28','28','44','28–30','34–36','10','30','40','13'],
+    ['S','30','30','46','30–32','36–38','10.25','30.5','40.5','13.5'],
+    ['M','32','32','48','32–34','38–40','10.5','31','41','14'],
+    ['L','34','34','50','34–36','40–42','10.75','31','41.5','14.5'],
+    ['XL','36','36','52','36–38','42–44','11','31.5','42','15'],
+    ['XXL','38','38','54','38–40','44–46','11.25','32','42.5','15.5'],
+  ];
+  const dresses = [
+    ['XS','34','34','44','33','28–30','34–36'], ['S','36','36','46','34','30–32','36–38'],
+    ['M','38','38','48','35','32–34','38–40'], ['L','40','40','50','36','34–36','40–42'],
+    ['XL','42','42','52','37','36–38','42–44'], ['XXL','44','44','54','38','38–40','44–46'],
+  ];
+  const shoes = [
+    ['38','6','7.5','5','24.0'],['39','7','8.5','6','25.0'],['40','7.5','9','6.5','25.5'],['41','8.5','10','7.5','26.0'],
+    ['42','9','10.5','8','27.0'],['43','10','11.5','9','27.5'],['44','10.5','12','9.5','28.0'],['45','11.5','13','10.5','29.0'],
+  ];
+  const rings = [['7','17.3','54.4'],['8','18.2','57.2'],['9','18.9','59.5'],['10','19.8','62.1'],['11','20.6','64.6'],['12','21.4','67.2']];
+  const belts = [['S','28–30','40','32'],['M','30–32','42','34'],['L','32–34','44','36'],['XL','34–36','46','38']];
+
+  const toCm = value => (Number(value) * 2.54).toFixed(1);
+  const display = value => unit === 'cm' ? toCm(value) : value;
+  const suffix = unit === 'cm' ? 'cm' : 'in';
+  const parseRange = value => value.split('–').map(Number);
+  const recommendation = useMemo(() => {
+    const values = ['chest','waist','hip'].map(k => Number(measurements[k])).filter(Boolean).map(v => unit === 'cm' ? v / 2.54 : v);
+    if (!values.length) return '';
+    let best = null;
+    clothing.forEach(row => {
+      const ranges = [row[4], row[5], row[6]].map(parseRange);
+      const score = values.reduce((sum, value, i) => {
+        const r = ranges[i];
+        if (!r) return sum;
+        return sum + (value < r[0] ? r[0] - value : value > r[1] ? value - r[1] : 0);
+      }, 0);
+      if (!best || score < best.score) best = { size: row[0], score };
+    });
+    return best?.size || '';
+  }, [measurements, unit]);
+
+  const updateMeasurement = (key, value) => setMeasurements(v => ({ ...v, [key]: value.replace(/[^0-9.]/g, '') }));
+  const tabs = ['CLOTHING','BOTTOMS','DRESSES','SHOES','RINGS','BELTS'];
+
   return (
-    <div className="modal-backdrop" onClick={close} role="dialog" aria-modal="true" aria-label="Size guide">
-      <div className="modal size-guide-modal" onClick={e => e.stopPropagation()}>
+    <div className="modal-backdrop size-guide-backdrop" onClick={close} role="dialog" aria-modal="true" aria-label="NOIRSAINT Size Guide">
+      <div className="modal size-guide-modal premium-size-guide" onClick={e => e.stopPropagation()}>
         <button className="close" onClick={close} aria-label="Close size guide"><X /></button>
-        <p className="eyebrow">NOIRSAINT / GUIDE</p>
-        <h2>SIZE GUIDE</h2>
-        <p>Measurements are a guide only. Compare against a garment you already own for the closest fit.</p>
-        <img className="size-chart-image" src={src} alt={`${product?.category || 'Clothing'} size chart`} />
-        <div className="measure-notes">
-          <b>HOW TO MEASURE</b>
-          <p>Measure the body or a comparable garment flat, without pulling the fabric. Keep the tape level and relaxed.</p>
-          <b>FIT</b>
-          <p>Silhouettes vary by product. Refer to the product description for fit notes where provided.</p>
+        <div className="size-guide-hero">
+          <p className="eyebrow">NOIRSAINT / GUIDE</p>
+          <h2>FIND YOUR <em>SIZE.</em></h2>
+          <p>Our house sizing system is designed as a consistent reference across the NOIRSAINT collection. Product-specific fit notes always take priority.</p>
         </div>
+
+        <div className="size-guide-controls">
+          <div className="size-guide-tabs" role="tablist" aria-label="Size guide categories">
+            {tabs.map(t => <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>{t}</button>)}
+          </div>
+          <div className="unit-toggle" aria-label="Measurement unit">
+            <button className={unit === 'in' ? 'active' : ''} onClick={() => setUnit('in')}>IN</button>
+            <button className={unit === 'cm' ? 'active' : ''} onClick={() => setUnit('cm')}>CM</button>
+          </div>
+        </div>
+
+        {(tab === 'CLOTHING' || tab === 'BOTTOMS' || tab === 'DRESSES') && (
+          <section className="size-finder">
+            <div>
+              <p className="eyebrow">QUICK FIT</p>
+              <h3>FIND MY SIZE</h3>
+              <p>Enter your body measurements. Leave any field blank if you don't have it.</p>
+            </div>
+            <div className="size-finder-fields">
+              {['chest','waist','hip'].map(key => (
+                <label key={key}>{key.toUpperCase()} <input inputMode="decimal" value={measurements[key]} onChange={e => updateMeasurement(key, e.target.value)} placeholder={unit === 'cm' ? 'CM' : 'IN'} /></label>
+              ))}
+            </div>
+            <div className="size-finder-result">
+              <span>RECOMMENDED</span>
+              <strong>{recommendation || '—'}</strong>
+            </div>
+          </section>
+        )}
+
+        <section className="size-table-wrap">
+          {tab === 'CLOTHING' && <>
+            <h3>CLOTHING / TOPS / OUTERWEAR</h3>
+            <p className="size-table-note">Body measurements. Outerwear may include additional ease depending on silhouette.</p>
+            <table><thead><tr><th>SIZE</th><th>US</th><th>UK</th><th>EU</th><th>CHEST</th><th>WAIST</th><th>HIP</th></tr></thead><tbody>{clothing.map(r => <tr key={r[0]}><th>{r[0]}</th><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td><td>{display(r[4])} {suffix}</td><td>{display(r[5])} {suffix}</td><td>{display(r[6])} {suffix}</td></tr>)}</tbody></table>
+            <div className="garment-reference"><b>GARMENT REFERENCE</b><span>Shoulder: XS 16.5" → XXL 19"</span><span>Sleeve: XS 24.5" → XXL 27"</span><span>Length: XS 26" → XXL 31"</span></div>
+          </>}
+          {tab === 'BOTTOMS' && <><h3>BOTTOMS</h3><p className="size-table-note">Body waist and hip are the primary size reference; rise and leg measurements are garment references.</p><table><thead><tr><th>SIZE</th><th>US</th><th>UK</th><th>EU</th><th>WAIST</th><th>HIP</th><th>RISE</th><th>INSEAM</th><th>LEG</th></tr></thead><tbody>{bottoms.map(r => <tr key={r[0]}><th>{r[0]}</th><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td><td>{display(r[4])} {suffix}</td><td>{display(r[5])} {suffix}</td><td>{display(r[6])}</td><td>{display(r[7])}</td><td>{display(r[9])}</td></tr>)}</tbody></table></>}
+          {tab === 'DRESSES' && <><h3>DRESSES</h3><table><thead><tr><th>SIZE</th><th>US</th><th>UK</th><th>EU</th><th>BUST</th><th>WAIST</th><th>HIP</th></tr></thead><tbody>{dresses.map(r => <tr key={r[0]}><th>{r[0]}</th><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td><td>{display(r[4])} {suffix}</td><td>{display(r[5])} {suffix}</td><td>{display(r[6])} {suffix}</td></tr>)}</tbody></table></>}
+          {tab === 'SHOES' && <><h3>SHOES</h3><p className="size-table-note">Measure both feet and use the larger foot length.</p><table><thead><tr><th>EU</th><th>US MEN</th><th>US WOMEN</th><th>UK</th><th>FOOT LENGTH</th></tr></thead><tbody>{shoes.map(r => <tr key={r[0]}><th>{r[0]}</th><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td><td>{unit === 'cm' ? r[4] : (Number(r[4]) / 2.54).toFixed(2)} {unit === 'cm' ? 'cm' : 'in'}</td></tr>)}</tbody></table></>}
+          {tab === 'RINGS' && <><h3>RINGS</h3><table><thead><tr><th>US SIZE</th><th>INSIDE DIAMETER</th><th>CIRCUMFERENCE</th></tr></thead><tbody>{rings.map(r => <tr key={r[0]}><th>{r[0]}</th><td>{unit === 'cm' ? (Number(r[1]) / 10).toFixed(2) : r[1]} {unit === 'cm' ? 'cm' : 'mm'}</td><td>{unit === 'cm' ? (Number(r[2]) / 10).toFixed(2) : r[2]} {unit === 'cm' ? 'cm' : 'mm'}</td></tr>)}</tbody></table></>}
+          {tab === 'BELTS' && <><h3>BELTS</h3><table><thead><tr><th>SIZE</th><th>WAIST</th><th>TOTAL LENGTH</th><th>CENTER HOLE</th></tr></thead><tbody>{belts.map(r => <tr key={r[0]}><th>{r[0]}</th><td>{display(r[1])} {suffix}</td><td>{display(r[2])} {suffix}</td><td>{display(r[3])} {suffix}</td></tr>)}</tbody></table></>}
+        </section>
+
+        <section className="fit-guide-grid">
+          <div><p className="eyebrow">FIT GUIDE</p><h3>CHOOSE YOUR SILHOUETTE</h3></div>
+          <div className="fit-guide-list"><span><b>SLIM</b> Close to the body with minimal extra room.</span><span><b>REGULAR</b> Balanced proportions with comfortable room.</span><span><b>RELAXED</b> More room through the body and sleeves.</span><span><b>OVERSIZED</b> Intentional extra volume and dropped shoulders.</span><span><b>WIDE</b> Generous proportions through the body, leg, or sleeve.</span></div>
+        </section>
+
+        <button className="measure-toggle" onClick={() => setShowMeasure(v => !v)} aria-expanded={showMeasure}>HOW TO MEASURE <ChevronDown className={showMeasure ? 'open' : ''} size={16} /></button>
+        {showMeasure && <section className="measure-guide"><div><b>CHEST / BUST</b><p>Measure around the fullest part while keeping the tape level.</p></div><div><b>WAIST</b><p>Measure around your natural waist without pulling tight.</p></div><div><b>HIP</b><p>Measure around the fullest part of your hips.</p></div><div><b>FOOT</b><p>Measure heel to longest toe while standing naturally.</p></div><div><b>RING</b><p>Measure the inside diameter or circumference of a ring that fits.</p></div><div><b>BETWEEN SIZES?</b><p>Choose smaller for a closer silhouette, larger for more room. For oversized pieces, your usual size is generally recommended.</p></div></section>}
+
+        <p className="size-guide-disclaimer"><b>SIZE GUIDE NOTE</b> NOIRSAINT sizing represents our proposed house standards. Measurements may vary with construction, fabric, production method, and intended fit. Refer to individual product measurements whenever available. All measurements are approximate.</p>
       </div>
     </div>
   );

@@ -575,7 +575,9 @@ function SizeGuide({ close, product }) {
   const belts = [['S','28–30','40','32'],['M','30–32','42','34'],['L','32–34','44','36'],['XL','34–36','46','38']];
 
   const toCm = value => (Number(value) * 2.54).toFixed(1);
-  const display = value => unit === 'cm' ? toCm(value) : value;
+  const display = value => unit === 'cm'
+    ? value.split('–').map(toCm).join('–')
+    : value;
   const suffix = unit === 'cm' ? 'cm' : 'in';
   const parseRange = value => value.split('–').map(Number);
   const recommendation = useMemo(() => {

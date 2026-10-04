@@ -1948,7 +1948,7 @@ function ForgotPassword() {
     if (!emailPattern.test(email)) { setMessage('ENTER A VALID EMAIL ADDRESS.'); return; }
     if (!supabase) { setMessage('PASSWORD RECOVERY REQUIRES SUPABASE CONFIGURATION.'); return; }
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/#reset-password` });
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
     setMessage(error ? error.message.toUpperCase() : 'CHECK YOUR EMAIL FOR A PASSWORD RESET LINK.');
     setLoading(false);
   };
@@ -1965,6 +1965,65 @@ function ForgotPassword() {
   );
 }
 
+
+function ResetPassword() {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!supabase) {
+      setMessage('PASSWORD RECOVERY REQUIRES SUPABASE CONFIGURATION.');
+      return;
+    }
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      if (data.session) setReady(true);
+      else setMessage('THIS RESET LINK IS INVALID OR EXPIRED. REQUEST A NEW ONE.');
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (event === 'PASSWORD_RECOVERY' && session) setReady(true);
+    });
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const submit = async e => {
+    e.preventDefault();
+    if (!supabase) return;
+    if (password.length < 8) { setMessage('PASSWORD MUST BE AT LEAST 8 CHARACTERS.'); return; }
+    if (password !== confirmPassword) { setMessage('PASSWORDS DO NOT MATCH.'); return; }
+    setLoading(true);
+    setMessage('');
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) setMessage(error.message.toUpperCase());
+    else {
+      await supabase.auth.signOut();
+      go('#login');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <AuthLayout title="SET NEW PASSWORD.">
+      <form className="form-panel" onSubmit={submit} noValidate>
+        <p>CREATE A NEW SECURE PASSWORD FOR YOUR NOIRSAINT ACCOUNT.</p>
+        <PasswordField id="new-password" label="NEW PASSWORD" value={password} onChange={e => setPassword(e.target.value)} minLength={8} />
+        <PasswordField id="confirm-new-password" label="CONFIRM PASSWORD" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} minLength={8} />
+        {message && <div className="error" role="alert">{message}</div>}
+        {ready && <button className="btn primary" type="submit" disabled={loading} aria-busy={loading}>{loading ? 'UPDATING...' : 'UPDATE PASSWORD'}</button>}
+        {!ready && <a href="#forgot-password">REQUEST A NEW RESET LINK</a>}
+        <a href="#login">RETURN TO SIGN IN</a>
+      </form>
+    </AuthLayout>
+  );
+}
 /* ── Misc pages ────────────────────────────────────────────────── */
 function Simple({ title, children }) {
   return (
@@ -2049,6 +2108,7 @@ function resolveRoute(route, path) {
     if (normalized === 'login')      return <Login />;
     if (normalized === 'register')   return <Register />;
     if (normalized === 'forgot-password') return <ForgotPassword />;
+    if (normalized === 'reset-password') return <ResetPassword />;
     if (normalized === 'account')    return <AccountPage />;
     if (normalized.startsWith('account/')) return <AccountPage section={normalized.split('/')[1]} />;
     if (normalized === 'contact')    return <Contact />;

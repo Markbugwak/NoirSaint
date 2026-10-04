@@ -895,6 +895,7 @@ function AdminNav({ collapsed, onToggle }) {
       <nav aria-label="Admin navigation">
         <a className={isActive('#admin') ? 'active' : ''} href="#admin"><Box size={15} /><span>Overview</span></a>
         <a className={isActive('#admin/orders') ? 'active' : ''} href="#admin/orders"><ShoppingBag size={15} /><span>Orders</span></a>
+        <a className={isActive('#admin/pos') ? 'active' : ''} href="#admin/pos"><Monitor size={15} /><span>POS</span></a>
         <a className={isActive('#admin/products') ? 'active' : ''} href="#admin/products"><Package size={15} /><span>Products</span></a>
         <a className={isActive('#admin/inventory') ? 'active' : ''} href="#admin/inventory"><AlertTriangle size={15} /><span>Inventory</span></a>
         <a className={isActive('#admin/customers') ? 'active' : ''} href="#admin/customers"><Users size={15} /><span>Customers</span></a>
@@ -1328,6 +1329,132 @@ function AdminProfile() {
     </AdminLayout>
   );
 }
+
+function AdminPOS() {
+  const [products, setProducts] = useState(() => getProducts().filter(p => p.status === 'published'));
+  const [query, setQuery] = useState('');
+  const [cart, setCart] = useState([]);
+  const [customer, setCustomer] = useState({ name: 'Walk-in Customer', email: '', phone: '', address: 'In-store POS sale', city: 'Cebu City', province: 'Cebu', payment: 'Cash on Delivery' });
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const filtered = products.filter(p => `${p.name} ${p.sku} ${p.category}`.toLowerCase().includes(query.toLowerCase()));
+
+  const addItem = (product, variant) => {
+    if (!variant || variant.stock < 1) return;
+    setCart(current => {
+      const key = `${product.id}:${variant.id}`;
+      const existing = current.find(item => item.key === key);
+      if (existing) {
+        return current.map(item => item.key === key
+          ? { ...item, quantity: Math.min(item.quantity + 1, variant.stock) }
+          : item);
+      }
+      return [...current, {
+        key,
+        productId: product.id,
+        variantId: variant.id,
+        name: product.name,
+        size: variant.size,
+        color: variant.color,
+        sku: variant.sku,
+        price: variant.price || product.price,
+        image: variant.image || product.images?.[0],
+        quantity: 1,
+      }];
+    });
+  };
+
+  const updateQty = (key, quantity) => setCart(current => current.map(item => {
+    if (item.key !== key) return item;
+    const product = products.find(p => p.id === item.productId);
+    const variant = product?.variants.find(v => v.id === item.variantId);
+    const next = Math.min(Math.max(1, Number(quantity) || 1), Number(variant?.stock || 0));
+    return { ...item, quantity: next };
+  }));
+
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const completeSale = async () => {
+    if (!cart.length) return setError('ADD AT LEAST ONE PRODUCT TO THE POS CART.');
+    if (!customer.name.trim()) return setError('ENTER A CUSTOMER NAME.');
+    setError('');
+    setSaving(true);
+    try {
+      await createOrder({ customer, items: cart, total });
+      setCart([]);
+      setCustomer({ name: 'Walk-in Customer', email: '', phone: '', address: 'In-store POS sale', city: 'Cebu City', province: 'Cebu', payment: 'Cash on Delivery' });
+      await refreshOrders().catch(() => {});
+    } catch (err) {
+      setError(err.message || 'Unable to complete the POS sale.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <AdminLayout title="POINT OF SALE" subtitle="Create in-store orders and keep inventory synchronized with the commerce system.">
+      <div className="admin-actions">
+        <div className="search-box">
+          <Search size={15} />
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="SEARCH PRODUCTS / SKU" aria-label="Search POS products" />
+        </div>
+        <span className="status">{cart.reduce((n, item) => n + item.quantity, 0)} ITEMS IN SALE</span>
+      </div>
+      <div className="admin-grid">
+        <section className="panel">
+          <div className="panel-head"><h3>PRODUCTS</h3></div>
+          <div className="admin-order-table">
+            {filtered.map(product => (
+              <div className="admin-order-row" key={product.id} style={{ gridTemplateColumns: '1fr auto' }}>
+                <div><b>{product.name}</b><span>{product.category} · {money(product.price)}</span></div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {product.variants.filter(v => v.stock > 0).map(variant => (
+                    <button className="btn" type="button" key={variant.id} onClick={() => addItem(product, variant)}>
+                      {variant.size} · {variant.stock}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {!filtered.length && <p className="empty">No matching products.</p>}
+          </div>
+        </section>
+        <section className="panel">
+          <div className="panel-head"><h3>CURRENT SALE</h3></div>
+          {cart.length ? cart.map(item => (
+            <div className="stock-line" key={item.key}>
+              <div><b>{item.name}</b><span>{item.size} · {item.sku}</span></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input className="stock-input" type="number" min="1" value={item.quantity} onChange={e => updateQty(item.key, e.target.value)} />
+                <strong>{money(item.price * item.quantity)}</strong>
+              </div>
+            </div>
+          )) : <p className="muted">Add products to begin a sale.</p>}
+          <div className="summary-total"><span>TOTAL</span><strong>{money(total)}</strong></div>
+        </section>
+      </div>
+      <section className="panel" style={{ marginTop: '24px' }}>
+        <div className="panel-head"><h3>CUSTOMER & PAYMENT</h3></div>
+        <div className="form-grid">
+          <label>NAME<input value={customer.name} onChange={e => setCustomer({ ...customer, name: e.target.value })} /></label>
+          <label>EMAIL<input type="email" value={customer.email} onChange={e => setCustomer({ ...customer, email: e.target.value })} /></label>
+          <label>PHONE<input value={customer.phone} onChange={e => setCustomer({ ...customer, phone: e.target.value })} /></label>
+          <label>PAYMENT
+            <select value={customer.payment} onChange={e => setCustomer({ ...customer, payment: e.target.value })}>
+              <option>Cash on Delivery</option><option>GCash</option><option>Bank Transfer</option>
+            </select>
+          </label>
+        </div>
+        {error && <div className="error" role="alert">{error}</div>}
+        <button className="btn primary" type="button" disabled={saving || !cart.length} onClick={completeSale}>
+          {saving ? 'PROCESSING SALE...' : 'COMPLETE SALE'} <ArrowRight size={15} />
+        </button>
+      </section>
+    </AdminLayout>
+  );
+}
+
 function AdminAnalytics() {
   const orders = getOrders();
   const rows = orders.flatMap(o => o.items);
@@ -1718,7 +1845,7 @@ function Login() {
           if (authError) { setErrors({ form: authError.message.toUpperCase() }); setLoading(false); return; }
           const user = data.user;
           setSession({ id: user.id, email: user.email, name: user.user_metadata?.full_name || user.email });
-          go('#account');
+          isAdmin().then(admin => go(admin ? '#admin' : '#account'));
         });
         return;
       }
@@ -1931,6 +2058,7 @@ function resolveRoute(route, path) {
     if (normalized === 'admin/products/new') return <ProductForm />;
     if (normalized.startsWith('admin/products/edit/')) return <ProductForm id={normalized.split('/')[3]} />;
     if (normalized === 'admin/inventory') return <AdminInventory />;
+    if (normalized === 'admin/pos')       return <AdminPOS />;
     if (normalized === 'admin/orders')    return <AdminOrders />;
     if (normalized === 'admin/customers') return <AdminCustomers />;
     if (normalized === 'admin/analytics') return <AdminAnalytics />;
@@ -1967,6 +2095,7 @@ function resolveRoute(route, path) {
   if (route === '#admin/products/new') return <ProductForm />;
   if (route.startsWith('#admin/products/edit/')) return <ProductForm id={route.split('/')[3]} />;
   if (route === '#admin/inventory')  return <AdminInventory />;
+  if (route === '#admin/pos')        return <AdminPOS />;
   if (route === '#admin/orders')     return <AdminOrders />;
   if (route === '#admin/customers')  return <AdminCustomers />;
   if (route === '#admin/analytics')  return <AdminAnalytics />;

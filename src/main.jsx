@@ -2078,16 +2078,73 @@ function ResetPassword() {
       setMessage('PASSWORD RECOVERY REQUIRES SUPABASE CONFIGURATION.');
       return;
     }
+
     let active = true;
-    supabase.auth.getSession().then(({ data }) => {
+    let settled = false;
+
+    const markReady = () => {
       if (!active) return;
-      if (data.session) setReady(true);
-      else setMessage('THIS RESET LINK IS INVALID OR EXPIRED. REQUEST A NEW ONE.');
-    });
+      settled = true;
+      setReady(true);
+      setMessage('');
+    };
+
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!active) return;
-      if (event === 'PASSWORD_RECOVERY' && session) setReady(true);
+      if (session && (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        markReady();
+      }
     });
+
+    const restoreRecoverySession = async () => {
+      try {
+        // Supabase recovery links normally arrive as hash tokens. Restore them
+        // explicitly so the reset screen does not race the auth client's URL parser.
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const accessToken = hash.get('access_token');
+        const refreshToken = hash.get('refresh_token');
+
+        if (accessToken && refreshToken) {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (!error && data.session) {
+            markReady();
+            return;
+          }
+        }
+
+        // Support PKCE-style recovery links as well.
+        const code = new URLSearchParams(window.location.search).get('code');
+        if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (!error && data.session) {
+            markReady();
+            return;
+          }
+        }
+
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          markReady();
+          return;
+        }
+
+        if (active && !settled) {
+          setMessage('AUTH SESSION MISSING. OPEN THE MOST RECENT RESET EMAIL LINK AGAIN.');
+        }
+      } catch (error) {
+        if (active) {
+          setMessage(error?.message
+            ? error.message.toUpperCase()
+            : 'AUTH SESSION MISSING. OPEN THE MOST RECENT RESET EMAIL LINK AGAIN.');
+        }
+      }
+    };
+
+    restoreRecoverySession();
+
     return () => {
       active = false;
       listener.subscription.unsubscribe();
@@ -2097,13 +2154,19 @@ function ResetPassword() {
   const submit = async e => {
     e.preventDefault();
     if (!supabase) return;
+    if (!ready) {
+      setMessage('AUTH SESSION MISSING. OPEN THE MOST RECENT RESET EMAIL LINK AGAIN.');
+      return;
+    }
     if (password.length < 8) { setMessage('PASSWORD MUST BE AT LEAST 8 CHARACTERS.'); return; }
     if (password !== confirmPassword) { setMessage('PASSWORDS DO NOT MATCH.'); return; }
+
     setLoading(true);
     setMessage('');
     const { error } = await supabase.auth.updateUser({ password });
-    if (error) setMessage(error.message.toUpperCase());
-    else {
+    if (error) {
+      setMessage(error.message.toUpperCase());
+    } else {
       await supabase.auth.signOut();
       go('#login');
     }

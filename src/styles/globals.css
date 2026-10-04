@@ -384,3 +384,70 @@ button, a { touch-action: manipulation; }
   .product:hover .quick { transform: none; }
   .product-img .quick { opacity: .96; }
 }
+
+
+/* ── Premium NOIRSAINT Size Guide ────────────────────────────── */
+.premium-size-guide { max-width: 1120px; max-height: 90vh; overflow-y: auto; padding: 34px; }
+.size-guide-backdrop { align-items: center; }
+.size-guide-hero { padding-right: 48px; margin-bottom: 28px; }
+.size-guide-hero h2 { margin: 0 0 12px; font-size: clamp(42px, 6vw, 76px); line-height: .9; letter-spacing: -.035em; }
+.size-guide-hero h2 em { font-style: normal; font-family: var(--font-serif, Georgia, serif); font-weight: 400; }
+.size-guide-hero > p:last-child { max-width: 62ch; color: #999; line-height: 1.7; font-size: 12px; }
+.size-guide-controls { display: flex; justify-content: space-between; align-items: center; gap: 20px; border-block: 1px solid #252525; padding: 10px 0; position: sticky; top: -34px; z-index: 4; background: #0b0b0b; }
+.size-guide-tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+.size-guide-tabs::-webkit-scrollbar { display: none; }
+.size-guide-tabs button, .unit-toggle button { border: 0; background: transparent; color: #777; font: inherit; font-size: 9px; letter-spacing: .16em; padding: 12px 10px; cursor: pointer; white-space: nowrap; }
+.size-guide-tabs button.active, .unit-toggle button.active { color: #fff; background: #171717; }
+.unit-toggle { display: flex; border: 1px solid #282828; flex: 0 0 auto; }
+.size-finder { display: grid; grid-template-columns: 1.1fr 1.7fr auto; gap: 24px; align-items: end; padding: 24px 0; border-bottom: 1px solid #222; }
+.size-finder h3, .size-table-wrap h3, .fit-guide-grid h3 { margin: 0 0 8px; font-size: 16px; letter-spacing: .08em; }
+.size-finder p:not(.eyebrow), .size-table-note { color: #888; font-size: 11px; line-height: 1.6; margin: 0; }
+.size-finder-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.size-finder-fields label { display: grid; gap: 7px; color: #777; font-size: 8px; letter-spacing: .15em; }
+.size-finder-fields input { width: 100%; min-height: 42px; border: 1px solid #292929; background: #111; color: #fff; padding: 0 12px; font: inherit; }
+.size-finder-result { min-width: 100px; border: 1px solid #333; padding: 12px 16px; text-align: center; }
+.size-finder-result span { display: block; color: #777; font-size: 7px; letter-spacing: .16em; margin-bottom: 6px; }
+.size-finder-result strong { font-size: 22px; letter-spacing: .06em; }
+.size-table-wrap { padding: 28px 0 12px; }
+.size-table-wrap h3 { font-size: 11px; letter-spacing: .18em; margin-bottom: 7px; }
+.size-table-wrap table { width: 100%; border-collapse: collapse; min-width: 720px; font-size: 10px; }
+.size-table-wrap { overflow-x: auto; }
+.size-table-wrap th, .size-table-wrap td { border-bottom: 1px solid #202020; padding: 12px 9px; text-align: left; white-space: nowrap; }
+.size-table-wrap thead th { color: #777; font-size: 7px; letter-spacing: .15em; font-weight: 500; }
+.size-table-wrap tbody th { color: #fff; font-weight: 600; }
+.size-table-wrap tbody tr:hover { background: #111; }
+.garment-reference { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 15px; color: #777; font-size: 9px; }
+.garment-reference b { color: #aaa; letter-spacing: .12em; }
+.fit-guide-grid { display: grid; grid-template-columns: .8fr 2fr; gap: 30px; padding: 28px 0; border-top: 1px solid #222; }
+.fit-guide-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 22px; }
+.fit-guide-list span { color: #888; font-size: 10px; line-height: 1.6; }
+.fit-guide-list b { color: #eee; font-size: 8px; letter-spacing: .12em; margin-right: 5px; }
+.measure-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; border: 0; border-top: 1px solid #222; border-bottom: 1px solid #222; background: transparent; color: #ddd; padding: 16px 0; font: inherit; font-size: 9px; letter-spacing: .16em; cursor: pointer; }
+.measure-toggle svg { transition: transform .25s ease; }
+.measure-toggle svg.open { transform: rotate(180deg); }
+.measure-guide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding: 20px 0; }
+.measure-guide div { padding-right: 12px; }
+.measure-guide b { font-size: 8px; letter-spacing: .14em; }
+.measure-guide p { color: #888; font-size: 10px; line-height: 1.6; margin: 7px 0 0; }
+.size-guide-disclaimer { margin: 25px 0 0; padding: 16px; background: #111; color: #777; font-size: 9px; line-height: 1.7; }
+.size-guide-disclaimer b { display: block; color: #aaa; font-size: 7px; letter-spacing: .15em; margin-bottom: 4px; }
+
+@media (max-width: 760px) {
+  .premium-size-guide { padding: 22px 18px; max-height: 92svh; }
+  .size-guide-controls { top: -22px; display: block; padding-block: 8px; }
+  .unit-toggle { position: absolute; right: 0; top: 8px; }
+  .size-guide-tabs { padding-right: 78px; }
+  .size-guide-hero { padding-right: 0; }
+  .size-guide-hero h2 { font-size: clamp(42px, 13vw, 66px); }
+  .size-finder { grid-template-columns: 1fr; gap: 16px; }
+  .size-finder-fields { grid-template-columns: repeat(3, 1fr); }
+  .size-finder-result { width: 100%; }
+  .fit-guide-grid { grid-template-columns: 1fr; gap: 18px; }
+  .fit-guide-list { grid-template-columns: 1fr; }
+  .measure-guide { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 420px) {
+  .size-finder-fields { grid-template-columns: 1fr; }
+  .measure-guide { grid-template-columns: 1fr; }
+  .size-guide-hero h2 { font-size: 13vw; }
+}

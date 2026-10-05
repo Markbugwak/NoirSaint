@@ -451,3 +451,274 @@ button, a { touch-action: manipulation; }
   .measure-guide { grid-template-columns: 1fr; }
   .size-guide-hero h2 { font-size: 13vw; }
 }
+
+
+/* ================================================================
+   NOIRSAINT ADMIN MOBILE FIX — TOUCH / SAFE-AREA / DATA SURFACES
+   Keeps every admin screen usable on phones without changing desktop.
+================================================================ */
+@media (max-width: 760px) {
+  .admin {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Keep the drawer above every admin surface and give it phone-safe spacing. */
+  .admin-nav,
+  .admin-collapsed .admin-nav {
+    width: min(320px, 88vw);
+    padding-top: max(18px, env(safe-area-inset-top));
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
+    box-shadow: 18px 0 45px rgba(0,0,0,.45);
+  }
+
+  .admin-nav nav {
+    margin-bottom: 22px;
+  }
+
+  .admin-nav nav a {
+    min-height: 48px;
+    padding: 13px 4px;
+  }
+
+  .admin-nav-toggle,
+  .admin-reopen {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .admin-reopen {
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
+    border-radius: 2px;
+  }
+
+  .admin-main {
+    padding-top: max(82px, calc(68px + env(safe-area-inset-top)));
+    padding-bottom: max(70px, env(safe-area-inset-bottom));
+  }
+
+  .admin-header {
+    align-items: center;
+    margin-bottom: 28px;
+    padding-bottom: 14px;
+  }
+
+  .admin-header-brand strong {
+    font-size: 9px;
+    letter-spacing: .16em;
+  }
+
+  .admin-header-actions {
+    flex: 0 0 auto;
+  }
+
+  .admin-header-actions a {
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+  }
+
+  .admin-top h1 {
+    font-size: clamp(42px, 14vw, 66px);
+    line-height: .88;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-page-subtitle {
+    max-width: 100%;
+    line-height: 1.65;
+  }
+
+  .admin-kpis,
+  .stats {
+    width: 100%;
+  }
+
+  .admin-kpis .stat,
+  .stats .stat {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .admin-kpis .stat strong,
+  .stats .stat strong {
+    line-height: 1.1;
+  }
+
+  .admin-overview-grid,
+  .admin-grid {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .panel {
+    min-width: 0;
+  }
+
+  .panel-head {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .panel-head h3 {
+    min-width: 0;
+  }
+
+  /* Tables stay intact; the user scrolls the data surface, not the page. */
+  .table-wrap,
+  .admin-order-table,
+  .admin-order-table,
+  .variant-editor {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .table-wrap table {
+    min-width: 680px;
+  }
+
+  .admin-order-table {
+    padding-bottom: 3px;
+  }
+
+  .admin-order-row {
+    min-width: 620px;
+  }
+
+  .variant-editor {
+    width: 100%;
+  }
+
+  .variant-row {
+    min-width: 640px;
+  }
+
+  /* Search/action rows stack cleanly instead of squeezing buttons. */
+  .admin-actions {
+    width: 100%;
+  }
+
+  .admin-actions .search-box,
+  .admin-actions > .btn,
+  .admin-actions > a.btn,
+  .admin-actions > button {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .search-box input {
+    min-width: 0;
+  }
+
+  .admin-top-actions {
+    width: 100%;
+  }
+
+  .admin-top-actions > * {
+    max-width: 100%;
+  }
+
+  /* Product/edit forms: no horizontal clipping on narrow phones. */
+  .form-panel,
+  .form-section,
+  .form-footer {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .form-section {
+    padding: 18px 15px;
+  }
+
+  .form-grid label,
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea {
+    min-height: 46px;
+    box-sizing: border-box;
+  }
+
+  .form-footer {
+    gap: 10px;
+  }
+
+  .form-footer .btn {
+    min-height: 48px;
+  }
+
+  /* Inventory/status rows should never force the whole page wider. */
+  .admin-stock-line {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .admin-stock-line > a {
+    grid-column: 1 / -1;
+    opacity: 1;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Make dense admin cards readable on a phone. */
+  .admin-welcome {
+    gap: 10px;
+  }
+
+  .admin-welcome time {
+    font-size: 9px;
+    color: #777;
+  }
+
+  .admin-empty {
+    padding-inline: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-main {
+    padding-inline: 5vw;
+  }
+
+  .admin-kpis,
+  .stats {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-kpis .stat,
+  .stats .stat {
+    min-height: 104px;
+  }
+
+  .admin-header-actions a:first-of-type {
+    font-size: 0;
+    gap: 0;
+  }
+
+  .admin-header-actions a:first-of-type svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .panel-head h3 {
+    font-size: 10px;
+    letter-spacing: .12em;
+  }
+
+  .form-section {
+    padding-inline: 13px;
+  }
+}

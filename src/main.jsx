@@ -1028,7 +1028,7 @@ function AdminLayout({ children, title, subtitle }) {
     <main className={`admin${collapsed ? ' admin-collapsed' : ''}`}>
       <AdminNav collapsed={collapsed} onToggle={() => setCollapsed(value => !value)} />
       {!collapsed && <button className="admin-nav-backdrop" type="button" onClick={() => setCollapsed(true)} aria-label="Close admin sidebar" />}
-      {collapsed && <button className="admin-reopen" type="button" onClick={() => setCollapsed(false)} aria-label="Open admin sidebar"><Menu size={18} /></button>
+      {collapsed && <button className="admin-reopen" type="button" onClick={() => setCollapsed(false)} aria-label="Open admin sidebar"><Menu size={18} /></button>}
       <section className="admin-main">
         <header className="admin-header">
           <div className="admin-header-brand"><strong>NOIRSAINT</strong><span>ADMIN PANEL</span></div>

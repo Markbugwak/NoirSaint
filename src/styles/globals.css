@@ -722,3 +722,39 @@ button, a { touch-action: manipulation; }
     padding-inline: 13px;
   }
 }
+
+
+/* ================================================================
+   ADMIN SIDEBAR STABILITY FIX
+   Desktop remains a fixed sidebar; mobile uses a real drawer layer.
+================================================================ */
+.admin-nav-backdrop{display:none}
+@media (min-width:761px){
+  .admin-nav{left:0;top:0;bottom:0;width:230px;z-index:50}
+  .admin-collapsed .admin-nav{width:76px}
+  .admin-main{min-width:0}
+}
+@media (max-width:760px){
+  .admin-nav-backdrop{
+    display:block;
+    position:fixed;
+    inset:0;
+    z-index:59;
+    border:0;
+    padding:0;
+    margin:0;
+    background:rgba(0,0,0,.58);
+    backdrop-filter:blur(2px);
+  }
+  .admin-nav{
+    z-index:60;
+    width:min(320px,88vw);
+    max-width:320px;
+    box-sizing:border-box;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  .admin-collapsed .admin-nav{pointer-events:none}
+  .admin-main{position:relative;z-index:1;min-width:0}
+  .admin-reopen{z-index:61}
+}
